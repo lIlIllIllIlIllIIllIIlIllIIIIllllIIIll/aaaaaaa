@@ -1,0 +1,1153 @@
+-- ▸ Script Fully Coded by: Vnly
+--
+
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/untouchablecc/aware/refs/heads/main/aa"))()
+
+local main = library:Load{
+    Name = "Allah.ware -- @v4f ",
+    SizeX = 600,
+    SizeY = 575,
+    Theme = "Default",
+    Extension = "lua",
+    Folder = "Allah_ware"
+}
+
+
+local hitboxTab = main:Tab("Main")
+local miscTab = main:Tab("Miscellaneous")
+local optimizationTab = main:Tab("Optimization")
+local configs = main:Tab("Configuration")
+
+
+
+-- Services
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local gunRangeValues = {
+    ["[Double-Barrel SG]"] = 1, 
+    ["[Revolver]"] = 1,
+    ["[TacticalShotgun]"] = 1
+}
+
+local gunDamageMultipliers = {
+    ["[Double-Barrel SG]"] = 1.0, -- Default multiplier (1x)
+    ["[Revolver]"] = 1.0,
+    ["[TacticalShotgun]"] = 1.0
+}
+
+local gunCooldownValues = {
+    ["[Double-Barrel SG]"] = 1.0, -- Default cooldown
+    ["[Revolver]"] = 1.0,
+    ["[TacticalShotgun]"] = 1.0
+}
+
+getgenv().GunRangeEnabled = false
+getgenv().GunDamageEnabled = false
+getgenv().GunCooldownEnabled = false
+
+-- Gun Range Section
+local rangeSection = miscTab:Section{
+    Name = "Gun Range Settings",
+    Side = "Left"
+}
+
+rangeSection:Toggle{
+    Name = "Gun Range Enabled",
+    Default = false,
+    Callback = function(enabled)
+        getgenv().GunRangeEnabled = enabled
+        if not enabled then
+        end
+    end
+}
+
+rangeSection:Slider{
+    Name = "Double-Barrel Range",
+    Min = 1,
+    Max = 1000,
+    Default = gunRangeValues["[Double-Barrel SG]"],
+    Callback = function(value)
+        gunRangeValues["[Double-Barrel SG]"] = value
+    end
+}
+
+rangeSection:Slider{
+    Name = "Revolver Range",
+    Min = 1,
+    Max = 1000,
+    Default = gunRangeValues["[Revolver]"],
+    Callback = function(value)
+        gunRangeValues["[Revolver]"] = value
+    end
+}
+
+rangeSection:Slider{
+    Name = "Tactical Shotgun Range",
+    Min = 1,
+    Max = 1000,
+    Default = gunRangeValues["[TacticalShotgun]"],
+    Callback = function(value)
+        gunRangeValues["[TacticalShotgun]"] = value
+    end
+}
+
+-- Gun Damage Section
+local damageSection = miscTab:Section{
+    Name = "Gun Damage Settings",
+    Side = "Right"
+}
+
+damageSection:Toggle{
+    Name = "Gun Damage Enabled",
+    Default = false,
+    Callback = function(enabled)
+        getgenv().GunDamageEnabled = enabled
+        if not enabled then
+        end
+    end
+}
+
+damageSection:Slider{
+    Name = "Double-Barrel Damage Multiplier",
+    Min = 0.1,
+    Max = 50,
+    Default = gunDamageMultipliers["[Double-Barrel SG]"],
+    Callback = function(value)
+        gunDamageMultipliers["[Double-Barrel SG]"] = value
+    end
+}
+
+damageSection:Slider{
+    Name = "Revolver Damage Multiplier",
+    Min = 0.1,
+    Max = 50,
+    Default = gunDamageMultipliers["[Revolver]"],
+    Callback = function(value)
+        gunDamageMultipliers["[Revolver]"] = value
+    end
+}
+
+damageSection:Slider{
+    Name = "Tactical Shotgun Damage Multiplier",
+    Min = 0.1,
+    Max = 50,
+    Default = gunDamageMultipliers["[TacticalShotgun]"],
+    Callback = function(value)
+        gunDamageMultipliers["[TacticalShotgun]"] = value
+    end
+}
+
+-- Gun Shooting Cooldown Section
+local cooldownSection = miscTab:Section{
+    Name = "Shooting Cooldown Settings",
+    Side = "Left"
+}
+
+cooldownSection:Toggle{
+    Name = "Shooting Cooldown Enabled",
+    Default = false,
+    Callback = function(enabled)
+        getgenv().GunCooldownEnabled = enabled
+        if not enabled then
+        end
+    end
+}
+
+cooldownSection:Slider{
+    Name = "Double-Barrel Cooldown",
+    Min = 0,
+    Max = 5.0,
+    Default = gunCooldownValues["[Double-Barrel SG]"],
+    Callback = function(value)
+        gunCooldownValues["[Double-Barrel SG]"] = value
+    end
+}
+
+cooldownSection:Slider{
+    Name = "Revolver Cooldown",
+    Min = 0,
+    Max = 5.0,
+    Default = gunCooldownValues["[Revolver]"],
+    Callback = function(value)
+        gunCooldownValues["[Revolver]"] = value
+    end
+}
+
+cooldownSection:Slider{
+    Name = "Tactical Shotgun Cooldown",
+    Min = 0,
+    Max = 5.0,
+    Default = gunCooldownValues["[TacticalShotgun]"],
+    Callback = function(value)
+        gunCooldownValues["[TacticalShotgun]"] = value
+    end
+}
+
+-- Function to Continuously Apply Custom Gun Properties When Enabled
+local function applyGunProperties()
+    while true do
+        task.wait(0.1) -- Interval to apply settings
+        if getgenv().GunRangeEnabled or getgenv().GunDamageEnabled or getgenv().GunCooldownEnabled then
+            pcall(function()
+                for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+                    if tool:IsA("Tool") and (gunRangeValues[tool.Name] or gunDamageMultipliers[tool.Name] or gunCooldownValues[tool.Name]) then
+                        for _, obj in ipairs(tool:GetChildren()) do
+                            if obj:IsA("NumberValue") then
+                                if obj.Name:lower():find("range") and getgenv().GunRangeEnabled then
+                                    obj.Value = gunRangeValues[tool.Name] -- Set range to the custom value
+                                elseif obj.Name:lower():find("damage") and getgenv().GunDamageEnabled then
+                                    obj.Value = obj.Value * gunDamageMultipliers[tool.Name] -- Apply damage multiplier
+                                elseif obj.Name:lower():find("cooldown") and getgenv().GunCooldownEnabled then
+                                    if gunCooldownValues[tool.Name] == 0 then
+                                        obj:Destroy() -- Remove cooldown by deleting the value
+                                    else
+                                        obj.Value = gunCooldownValues[tool.Name] -- Set custom cooldown
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                local character = LocalPlayer.Character
+                if character then
+                    for _, tool in ipairs(character:GetChildren()) do
+                        if tool:IsA("Tool") and (gunRangeValues[tool.Name] or gunDamageMultipliers[tool.Name] or gunCooldownValues[tool.Name]) then
+                            for _, obj in ipairs(tool:GetChildren()) do
+                                if obj:IsA("NumberValue") then
+                                    if obj.Name:lower():find("range") and getgenv().GunRangeEnabled then
+                                        obj.Value = gunRangeValues[tool.Name] -- Set range to the custom value
+                                    elseif obj.Name:lower():find("damage") and getgenv().GunDamageEnabled then
+                                        obj.Value = obj.Value * gunDamageMultipliers[tool.Name] -- Apply damage multiplier
+                                    elseif obj.Name:lower():find("cooldown") and getgenv().GunCooldownEnabled then
+                                        if gunCooldownValues[tool.Name] == 0 then
+                                            obj:Destroy() -- Remove cooldown by deleting the value
+                                        else
+                                            obj.Value = gunCooldownValues[tool.Name] -- Set custom cooldown
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        else
+            -- Ensure default game settings remain untouched if all options are disabled
+            task.wait(1)
+        end
+    end
+end
+
+-- Start applying gun properties in the background only when enabled
+coroutine.wrap(applyGunProperties)()
+
+
+
+
+
+
+
+
+
+
+
+
+
+--misc
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local currentTarget = nil
+local VnlyOriginalSizes = {}
+local VnlyOriginalParticles = {}
+local Toggle = false
+local lastUpdateTime = 0
+
+local gunCategories = {
+    Shotgun = {SizeX = 10, SizeY = 10, SizeZ = 10},
+    Pistol = {SizeX = 10, SizeY = 10, SizeZ = 10},
+    Other = {SizeX = 10, SizeY = 10, SizeZ = 10}
+}
+
+local GunTypes = {
+    ['[Double-Barrel SG]'] = 'Shotgun',
+    ['[Revolver]'] = 'Pistol',
+    ['[TacticalShotgun]'] = 'Shotgun',
+    ['[LMG]'] = 'Other',
+    ['[Silencer]'] = 'Pistol',
+    ['[Glock]'] = 'Pistol',
+    ['[SMG]'] = 'Other',
+    ['[Shotgun]'] = 'Shotgun',
+    ['[AK47]'] = 'Other',
+    ['[AR]'] = 'Other',
+    ['[Drum-Shotgun]'] = 'Shotgun',
+    ['[DrumGun]'] = 'Other',
+    ['[AUG]'] = 'Other',
+    ['[Rifle]'] = 'Other',
+    ['[P90]'] = 'Other',
+    ['[SilencerAR]'] = 'Other'
+}
+
+local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320} -- User IDs to ignore hitbox expander
+
+local function getClosestPlayerToCursor()
+    local mouse = LocalPlayer:GetMouse()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not table.find(whitelistedUserIds, player.UserId) then
+            local character = player.Character
+            local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(character.HumanoidRootPart.Position)
+
+            if onScreen then
+                local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                if distance < shortestDistance then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function isWhitelisted(player)
+    return table.find(whitelistedUserIds, player.UserId) ~= nil
+end
+
+local function VnlyResetBloodEffects(char)
+    for _, d in pairs(char:GetDescendants()) do
+        if d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") then
+            if not VnlyOriginalParticles[d] then
+                VnlyOriginalParticles[d] = {Enabled = d.Enabled, Size = d:IsA("ParticleEmitter") and d.Size or nil}
+            end
+            d.Enabled = false
+        end
+    end
+end
+
+local function VnlyRestoreBloodEffects(char)
+    for _, d in pairs(char:GetDescendants()) do
+        local original = VnlyOriginalParticles[d]
+        if original then
+            d.Enabled = original.Enabled
+        end
+    end
+end
+
+local function isKnockedOut(player)
+    local character = player.Character
+    if not character then return true end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    return not humanoid or humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead
+end
+
+local function getSizeConfig(toolName, gunDetection)
+    if gunDetection and toolName then
+        local gunType = GunTypes[toolName] or "Other"
+        return gunCategories[gunType]
+    else
+        return {SizeX = 12, SizeY = 8, SizeZ = 25}
+    end
+end
+
+local function VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection)
+    local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    local sizeConfig = getSizeConfig(equippedTool and equippedTool.Name, gunDetection)
+
+    if autoTarget then
+        local newTarget = getClosestPlayerToCursor()
+        if newTarget and newTarget ~= currentTarget then
+            currentTarget = newTarget
+        end
+    end
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and (everyoneMode or not isWhitelisted(p)) then
+            local c = p.Character
+            if c and c:FindFirstChild("HumanoidRootPart") then
+                local h = c.HumanoidRootPart
+
+                if Toggle then
+                    if knockCheck and isKnockedOut(p) then
+                        h.Size = Vector3.new(2, 2, 1)
+                        h.Transparency = 1
+                        h.Material = Enum.Material.Plastic
+                        VnlyRestoreBloodEffects(c)
+                    else
+                        if autoTarget and p ~= currentTarget then
+                            h.Size = Vector3.new(2, 2, 1)
+                            h.Transparency = 1
+                            h.Material = Enum.Material.Plastic
+                        else
+                            if not VnlyOriginalSizes[p] then
+                                VnlyOriginalSizes[p] = h.Size
+                            end
+                            VnlyResetBloodEffects(c)
+                            h.Size = Vector3.new(sizeConfig.SizeX, sizeConfig.SizeY, sizeConfig.SizeZ)
+                            h.Transparency = boxVisual and 0.5 or 1
+                            h.Material = Enum.Material.ForceField
+                            h.CanCollide = false
+                        end
+                    end
+                else
+                    if VnlyOriginalSizes[p] then
+                        h.Size = VnlyOriginalSizes[p]
+                        VnlyOriginalSizes[p] = nil
+                    end
+                    h.Transparency = 1
+                    h.Material = Enum.Material.Plastic
+                    VnlyRestoreBloodEffects(c)
+                end
+            end
+        end
+    end
+end
+
+-- UI Control
+local generalSection = hitboxTab:Section{
+    Name = "HBE",
+    Side = "Left"
+}
+
+local toggleSection = hitboxTab:Section{
+    Name = "Toggles",
+    Side = "Left"
+}
+
+local shotgunSection = hitboxTab:Section{
+    Name = "Shotgun Hitbox Size",
+    Side = "Right"
+}
+
+local pistolSection = hitboxTab:Section{
+    Name = "Pistol Hitbox Size",
+    Side = "Right"
+}
+
+local otherSection = hitboxTab:Section{
+    Name = "Other Guns Hitbox Size",
+    Side = "Right"
+}
+
+local toggleKey = Enum.KeyCode.X
+local everyoneMode = false
+local knockCheck = false
+local autoTarget = false
+local boxVisual = false
+local gunDetection = false
+
+-- Keybind Toggle
+generalSection:Keybind{
+    Name = "Toggle Keybind",
+    Default = toggleKey,
+    Callback = function(key)
+        toggleKey = key
+    end
+}
+
+-- Toggles
+toggleSection:Toggle{
+    Name = "Everyone Mode",
+    Default = everyoneMode,
+    Callback = function(enabled)
+        everyoneMode = enabled
+    end
+}
+
+toggleSection:Toggle{
+    Name = "Show Hitbox Box",
+    Default = boxVisual,
+    Callback = function(enabled)
+        boxVisual = enabled
+    end
+}
+
+toggleSection:Toggle{
+    Name = "Auto Target Closest Player",
+    Default = autoTarget,
+    Callback = function(enabled)
+        autoTarget = enabled
+    end
+}
+
+toggleSection:Toggle{
+    Name = "Disable on Knocked Players",
+    Default = knockCheck,
+    Callback = function(enabled)
+        knockCheck = enabled
+    end
+}
+
+toggleSection:Toggle{
+    Name = "Enable Gun Detection",
+    Default = gunDetection,
+    Callback = function(enabled)
+        gunDetection = enabled
+    end
+}
+
+-- Hitbox Sizes for Each Gun Type
+local gunSizeSliders = {
+    Shotgun = {SizeX = 7, SizeY = 6, SizeZ = 17},
+    Pistol = {SizeX = 7, SizeY = 15, SizeZ = 5},
+    Other = {SizeX = 10, SizeY = 10, SizeZ = 10}
+}
+
+for axis, default in pairs(gunSizeSliders.Shotgun) do
+    shotgunSection:Slider{
+        Name = "Shotgun " .. axis,
+        Min = 1,
+        Max = 50,
+        Default = default,
+        Callback = function(value)
+            gunCategories.Shotgun[axis] = value
+        end
+    }
+end
+
+for axis, default in pairs(gunSizeSliders.Pistol) do
+    pistolSection:Slider{
+        Name = "Pistol " .. axis,
+        Min = 1,
+        Max = 50,
+        Default = default,
+        Callback = function(value)
+            gunCategories.Pistol[axis] = value
+        end
+    }
+end
+
+for axis, default in pairs(gunSizeSliders.Other) do
+    otherSection:Slider{
+        Name = "Other " .. axis,
+        Min = 1,
+        Max = 50,
+        Default = default,
+        Callback = function(value)
+            gunCategories.Other[axis] = value
+        end
+    }
+end
+
+UserInputService.InputBegan:Connect(function(i, p)
+    if p then return end
+    if i.KeyCode == toggleKey then
+        Toggle = not Toggle
+        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection)
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if Toggle and (os.clock() - lastUpdateTime >= 0.1) then
+        lastUpdateTime = os.clock()
+        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection)
+    end
+end)
+----------------- hbe page
+
+
+local themes = configs:Section{Name = "Theme", Side = "Left"}
+
+local themepickers = {}
+
+local themelist = themes:Dropdown{
+    Name = "Theme",
+    Default = library.currenttheme,
+    Content = library:GetThemes(),
+    Flag = "Theme Dropdown",
+    Callback = function(option)
+        if option then
+            library:SetTheme(option)
+
+            for option, picker in next, themepickers do
+                picker:Set(library.theme[option])
+            end
+        end
+    end
+}
+
+library:ConfigIgnore("Theme Dropdown")
+
+local namebox = themes:Box{
+    Name = "Custom Theme Name",
+    Placeholder = "Custom Theme",
+    Flag = "Custom Theme"
+}
+
+library:ConfigIgnore("Custom Theme")
+
+themes:Button{
+    Name = "Save Custom Theme",
+    Callback = function()
+        if library:SaveCustomTheme(library.flags["Custom Theme"]) then
+            themelist:Refresh(library:GetThemes())
+            themelist:Set(library.flags["Custom Theme"])
+            namebox:Set("")
+        end
+    end
+}
+
+local customtheme = configs:Section{Name = "Custom Theme", Side = "Right"}
+
+themepickers["Accent"] = customtheme:ColorPicker{
+    Name = "Accent",
+    Default = library.theme["Accent"],
+    Flag = "Accent",
+    Callback = function(color)
+        library:ChangeThemeOption("Accent", color)
+    end
+}
+
+library:ConfigIgnore("Accent")
+
+themepickers["Window Background"] = customtheme:ColorPicker{
+    Name = "Window Background",
+    Default = library.theme["Window Background"],
+    Flag = "Window Background",
+    Callback = function(color)
+        library:ChangeThemeOption("Window Background", color)
+    end
+}
+
+library:ConfigIgnore("Window Background")
+
+themepickers["Window Border"] = customtheme:ColorPicker{
+    Name = "Window Border",
+    Default = library.theme["Window Border"],
+    Flag = "Window Border",
+    Callback = function(color)
+        library:ChangeThemeOption("Window Border", color)
+    end
+}
+
+library:ConfigIgnore("Window Border")
+
+themepickers["Tab Background"] = customtheme:ColorPicker{
+    Name = "Tab Background",
+    Default = library.theme["Tab Background"],
+    Flag = "Tab Background",
+    Callback = function(color)
+        library:ChangeThemeOption("Tab Background", color)
+    end
+}
+
+library:ConfigIgnore("Tab Background")
+
+themepickers["Tab Border"] = customtheme:ColorPicker{
+    Name = "Tab Border",
+    Default = library.theme["Tab Border"],
+    Flag = "Tab Border",
+    Callback = function(color)
+        library:ChangeThemeOption("Tab Border", color)
+    end
+}
+
+library:ConfigIgnore("Tab Border")
+
+themepickers["Tab Toggle Background"] = customtheme:ColorPicker{
+    Name = "Tab Toggle Background",
+    Default = library.theme["Tab Toggle Background"],
+    Flag = "Tab Toggle Background",
+    Callback = function(color)
+        library:ChangeThemeOption("Tab Toggle Background", color)
+    end
+}
+
+library:ConfigIgnore("Tab Toggle Background")
+
+themepickers["Section Background"] = customtheme:ColorPicker{
+    Name = "Section Background",
+    Default = library.theme["Section Background"],
+    Flag = "Section Background",
+    Callback = function(color)
+        library:ChangeThemeOption("Section Background", color)
+    end
+}
+
+library:ConfigIgnore("Section Background")
+
+themepickers["Section Border"] = customtheme:ColorPicker{
+    Name = "Section Border",
+    Default = library.theme["Section Border"],
+    Flag = "Section Border",
+    Callback = function(color)
+        library:ChangeThemeOption("Section Border", color)
+    end
+}
+
+library:ConfigIgnore("Section Border")
+
+themepickers["Text"] = customtheme:ColorPicker{
+    Name = "Text",
+    Default = library.theme["Text"],
+    Flag = "Text",
+    Callback = function(color)
+        library:ChangeThemeOption("Text", color)
+    end
+}
+
+library:ConfigIgnore("Text")
+
+themepickers["Disabled Text"] = customtheme:ColorPicker{
+    Name = "Disabled Text",
+    Default = library.theme["Disabled Text"],
+    Flag = "Disabled Text",
+    Callback = function(color)
+        library:ChangeThemeOption("Disabled Text", color)
+    end
+}
+
+library:ConfigIgnore("Disabled Text")
+
+themepickers["Object Background"] = customtheme:ColorPicker{
+    Name = "Object Background",
+    Default = library.theme["Object Background"],
+    Flag = "Object Background",
+    Callback = function(color)
+        library:ChangeThemeOption("Object Background", color)
+    end
+}
+
+library:ConfigIgnore("Object Background")
+
+themepickers["Object Border"] = customtheme:ColorPicker{
+    Name = "Object Border",
+    Default = library.theme["Object Border"],
+    Flag = "Object Border",
+    Callback = function(color)
+        library:ChangeThemeOption("Object Border", color)
+    end
+}
+
+library:ConfigIgnore("Object Border")
+
+themepickers["Dropdown Option Background"] = customtheme:ColorPicker{
+    Name = "Dropdown Option Background",
+    Default = library.theme["Dropdown Option Background"],
+    Flag = "Dropdown Option Background",
+    Callback = function(color)
+        library:ChangeThemeOption("Dropdown Option Background", color)
+    end
+}
+
+library:ConfigIgnore("Dropdown Option Background")
+
+local configsection = configs:Section{Name = "Configs", Side = "Left"}
+
+local configlist = configsection:Dropdown{
+    Name = "Configs",
+    Content = library:GetConfigs(), -- GetConfigs(true) if you want universal configs
+    Flag = "Config Dropdown"
+}
+
+library:ConfigIgnore("Config Dropdown")
+
+local loadconfig = configsection:Button{
+    Name = "Load Config",
+    Callback = function()
+        library:LoadConfig(library.flags["Config Dropdown"]) -- LoadConfig(library.flags["Config Dropdown"], true)  if you want universal configs
+    end
+}
+
+local delconfig = configsection:Button{
+    Name = "Delete Config",
+    Callback = function()
+        library:DeleteConfig(library.flags["Config Dropdown"]) -- DeleteConfig(library.flags["Config Dropdown"], true)  if you want universal configs
+        configlist:Refresh(library:GetConfigs())
+    end
+}
+
+
+local configbox = configsection:Box{
+    Name = "Config Name",
+    Placeholder = "Config Name",
+    Flag = "Config Name"
+}
+
+library:ConfigIgnore("Config Name")
+
+local save = configsection:Button{
+    Name = "Save Config",
+    Callback = function()
+        library:SaveConfig(library.flags["Config Dropdown"] or library.flags["Config Name"]) -- SaveConfig(library.flags["Config Name"], true) if you want universal configs
+        configlist:Refresh(library:GetConfigs())
+    end
+}
+
+local keybindsection = configs:Section{Name = "UI Toggle Keybind", Side = "Left"}
+
+keybindsection:Keybind{
+    Name = "UI Toggle",
+    Flag = "UI Toggle",
+    Default = Enum.KeyCode.Insert,
+    Blacklist = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3},
+    Callback = function(_, fromsetting)
+        if not fromsetting then
+            library:Close()
+        end
+    end
+}
+
+keybindsection:Keybind{
+    Name = "Destroy UI",
+    Flag = "Unload UI",
+    Default = Enum.KeyCode.Delete,
+    Blacklist = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3},
+    Callback = function(_, fromsetting)
+        if not fromsetting then
+            library:Unload()
+        end
+    end
+}
+-- settings page
+
+-- General Settings Section
+local generalSection = optimizationTab:Section{
+    Name = "General Settings",
+    Side = "Left"
+}
+
+generalSection:Slider{
+    Name = "Wait Per Amount",
+    Min = 100,
+    Max = 1000,
+    Default = 100,
+    Callback = function(value)
+        -- Only wait when triggered by the user
+    end
+}
+
+-- FPS Cap Section
+local fpsCapSection = optimizationTab:Section{
+    Name = "FPS Cap Settings",
+    Side = "Right"
+}
+
+fpsCapSection:Slider{
+    Name = "FPS Cap",
+    Min = 0,
+    Max = 999,
+    Default = 0,
+    Callback = function(value)
+        if setfpscap then
+            setfpscap(value)
+        end
+    end
+}
+
+-- Player Settings Section
+local playerSection = optimizationTab:Section{
+    Name = "Player Settings",
+    Side = "Left"
+}
+
+playerSection:Toggle{
+    Name = "Ignore Local Player",
+    Default = false,
+    Callback = function(enabled)
+        -- No action unless toggled
+    end
+}
+
+playerSection:Toggle{
+    Name = "Ignore Others",
+    Default = false,
+    Callback = function(enabled)
+        -- No action unless toggled
+    end
+}
+
+playerSection:Toggle{
+    Name = "Ignore Tools",
+    Default = false,
+    Callback = function(enabled)
+        -- No action unless toggled
+    end
+}
+
+-- Rendering Settings Section
+local renderingSection = optimizationTab:Section{
+    Name = "Rendering Settings",
+    Side = "Right"
+}
+
+renderingSection:Toggle{
+    Name = "Low Rendering",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            for _, instance in ipairs(workspace:GetDescendants()) do
+                if instance:IsA("BasePart") then
+                    instance.Material = Enum.Material.SmoothPlastic
+                    instance.Reflectance = 0
+                end
+            end
+        end
+    end
+}
+
+renderingSection:Toggle{
+    Name = "No Shadows",
+    Default = false,
+    Callback = function(enabled)
+        game:GetService("Lighting").GlobalShadows = not enabled
+    end
+}
+
+renderingSection:Toggle{
+    Name = "No Camera Effects",
+    Default = true,
+    Callback = function(enabled)
+        for _, effect in ipairs(game:GetService("Lighting"):GetChildren()) do
+            if effect:IsA("PostEffect") then
+                effect.Enabled = not enabled
+            end
+        end
+    end
+}
+
+renderingSection:Toggle{
+    Name = "Reset Materials",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            for _, part in ipairs(workspace:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Material = Enum.Material.Plastic
+                end
+            end
+        end
+    end
+}
+
+-- Terrain Settings Section
+local terrainSection = optimizationTab:Section{
+    Name = "Terrain Settings",
+    Side = "Left"
+}
+
+terrainSection:Toggle{
+    Name = "Low Water Graphics",
+    Default = false,
+    Callback = function(enabled)
+        local terrain = workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            terrain.WaterReflectance = enabled and 0 or 1
+            terrain.WaterWaveSize = enabled and 0 or 0.15
+        end
+    end
+}
+
+terrainSection:Toggle{
+    Name = "No Decorations",
+    Default = false,
+    Callback = function(enabled)
+        -- Placeholder for decorations handling
+    end
+}
+
+-- Visual Effects Section
+local visualsSection = optimizationTab:Section{
+    Name = "Visual Effects Settings",
+    Side = "Right"
+}
+
+visualsSection:Toggle{
+    Name = "No Particles",
+    Default = false,
+    Callback = function(enabled)
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("ParticleEmitter") or instance:IsA("Trail") or instance:IsA("Sparkles") then
+                instance.Enabled = not enabled
+            end
+        end
+    end
+}
+
+visualsSection:Toggle{
+    Name = "No Explosions",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            workspace.DescendantAdded:Connect(function(instance)
+                if instance:IsA("Explosion") then
+                    instance.BlastPressure = 1
+                    instance.BlastRadius = 1
+                end
+            end)
+        end
+    end
+}
+
+visualsSection:Toggle{
+    Name = "Smaller Explosions",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            for _, instance in ipairs(workspace:GetDescendants()) do
+                if instance:IsA("Explosion") then
+                    instance.BlastPressure = 1
+                    instance.BlastRadius = 1
+                end
+            end
+        end
+    end
+}
+
+visualsSection:Toggle{
+    Name = "No Clothing",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            for _, character in ipairs(game:GetService("Players"):GetPlayers()) do
+                if character.Character then
+                    for _, obj in ipairs(character.Character:GetDescendants()) do
+                        if obj:IsA("Clothing") or obj:IsA("Accessory") then
+                            obj:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end
+}
+
+visualsSection:Toggle{
+    Name = "Remove Decals",
+    Default = false,
+    Callback = function(enabled)
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("Decal") or instance:IsA("Texture") then
+                instance.Transparency = enabled and 1 or 0
+            end
+        end
+    end
+}
+
+-- Mesh Settings Section
+local meshSection = optimizationTab:Section{
+    Name = "Mesh Settings",
+    Side = "Left"
+}
+
+
+meshSection:Toggle{
+    Name = "No Texture",
+    Default = false,
+    Callback = function(enabled)
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("MeshPart") or (instance:IsA("SpecialMesh") and pcall(function() return instance.TextureId end)) then
+                if pcall(function() return instance.TextureId end) then
+                    instance.TextureId = enabled and "" or instance.TextureId
+                end
+            end
+        end
+    end
+}
+
+meshSection:Toggle{
+    Name = "Low Quality Meshes",
+    Default = false,
+    Callback = function(enabled)
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("MeshPart") then
+                instance.RenderFidelity = enabled and Enum.RenderFidelity.Performance or Enum.RenderFidelity.Automatic
+            end
+        end
+    end
+}
+
+-- Image Settings Section
+local imageSection = optimizationTab:Section{
+    Name = "Image Settings",
+    Side = "Right"
+}
+
+imageSection:Toggle{
+    Name = "Invisible Images",
+    Default = false,
+    Callback = function(enabled)
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("Decal") or instance:IsA("Texture") then
+                instance.Transparency = enabled and 1 or 0
+            end
+        end
+    end
+}
+
+imageSection:Toggle{
+    Name = "Low Detail Images",
+    Default = false,
+    Callback = function(enabled)
+        -- Placeholder for future low-detail image logic
+    end
+}
+
+imageSection:Toggle{
+    Name = "Destroy Images",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            for _, instance in ipairs(workspace:GetDescendants()) do
+                if instance:IsA("Decal") or instance:IsA("Texture") then
+                    instance:Destroy()
+                end
+            end
+        end
+    end
+}
+
+-- Text Settings Section
+local textSection = optimizationTab:Section{
+    Name = "Text Settings",
+    Side = "Left"
+}
+
+textSection:Toggle{
+    Name = "Low Quality Text",
+    Default = false,
+    Callback = function(enabled)
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
+                instance.Font = enabled and Enum.Font.SourceSans or Enum.Font.Gotham
+                instance.TextScaled = not enabled
+            end
+        end
+    end
+}
+
+textSection:Toggle{
+    Name = "Invisible Text",
+    Default = false,
+    Callback = function(enabled)
+        for _, instance in ipairs(workspace:GetDescendants()) do
+            if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
+                instance.Visible = not enabled
+            end
+        end
+    end
+}
+
+textSection:Toggle{
+    Name = "Destroy Text",
+    Default = false,
+    Callback = function(enabled)
+        if enabled then
+            for _, instance in ipairs(workspace:GetDescendants()) do
+                if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
+                    instance:Destroy()
+                end
+            end
+        end
+    end
+}
+
+-- optimization page
