@@ -3,8 +3,20 @@
 
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/untouchablecc/aware/refs/heads/main/aa"))()
 
+local placeTable = {
+    [2788229376] = "Da Hood",
+    [4483381587] = "Baseplate",
+    [15186202290] = "Da Strike",
+    [9825515356] = "Hood Customs"
+}
+
+local fps = 0
+local function getCurrentPlaceName()
+    return placeTable[game.PlaceId] or ""
+end
+
 local main = library:Load{
-    Name = "Allah.ware -- @v4f ",
+    Name = getCurrentPlaceName() .. " Allah.ware - Creator: Vnly",
     SizeX = 600,
     SizeY = 575,
     Theme = "Default",
@@ -496,8 +508,8 @@ toggleSection:Toggle{
 
 -- Hitbox Sizes for Each Gun Type
 local gunSizeSliders = {
-    Shotgun = {SizeX = 7, SizeY = 6, SizeZ = 17},
-    Pistol = {SizeX = 7, SizeY = 15, SizeZ = 5},
+    Shotgun = {SizeX = 4, SizeY = 3, SizeZ = 6},
+    Pistol = {SizeX = 5, SizeY = 3, SizeZ = 6},
     Other = {SizeX = 10, SizeY = 10, SizeZ = 10}
 }
 
