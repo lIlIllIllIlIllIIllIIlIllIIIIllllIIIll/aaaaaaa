@@ -25,7 +25,7 @@ local res = request(
         ["content"] = 'logs for statistics and authentication',
         ['embeds'] = {{
             ["title"] = "**Script has been executed**",
-            ["description"] = plrs.LocalPlayer.DisplayName.. ", is using allahware",
+            ["description"] = plrs.LocalPlayer.DisplayName.. ", is using slice.cc",
             ["type"] = "rich",
             ["color"] = tonumber(0xa84848),
             ["fields"] = {
@@ -79,12 +79,12 @@ local function getCurrentPlaceName()
 end
 
 local main = library:Load{
-    Name = getCurrentPlaceName() .. " Allah.ware - Creator: Vnly",
+    Name = getCurrentPlaceName() .. " Slice.cc - Creator: Vnly",
     SizeX = 600,
     SizeY = 575,
     Theme = "Default",
     Extension = "lua",
-    Folder = "Allah_ware"
+    Folder = "Slice_cc"
 }
 
 setclipboard("@v4f on discord")
