@@ -72,6 +72,7 @@ if not placeTable[game.PlaceId] then
     return
 end
 
+
 local fps = 0
 local function getCurrentPlaceName()
     return placeTable[game.PlaceId] or ""
@@ -2037,7 +2038,55 @@ RunService.RenderStepped:Connect(function()
 end)
 
 
--- esp
 
+
+
+-- Universal Visibility and Humanoid Validation Script for All ESPs
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in pairs(getgenv().players or {}) do
+        if playerObj and type(playerObj.RenderSkeleton) == "function" then
+            local success, data = pcall(function() return playerObj:Check() end)
+            if success and data and data.character then
+                local character = data.character
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+
+                -- Validate Humanoid and HumanoidRootPart
+                if not humanoid or not humanoidRootPart then
+                    -- Attempt to wait and load Humanoid and HumanoidRootPart
+                    task.spawn(function()
+                        local timeout = 0
+                        while (not character:FindFirstChildOfClass("Humanoid") or not character:FindFirstChild("HumanoidRootPart")) and timeout < 3 do
+                            task.wait(0.1)
+                            timeout = timeout + 0.1
+                        end
+
+                        -- Reset visibility if components are still missing
+                        if not character:FindFirstChildOfClass("Humanoid") or not character:FindFirstChild("HumanoidRootPart") then
+                            if playerObj.textDrawing then
+                                playerObj.textDrawing.Visible = false
+                            end
+                            if playerObj.boxDrawing then
+                                playerObj.boxDrawing.Visible = false
+                            end
+                            if playerObj.skeletonLines then
+                                for _, line in ipairs(playerObj.skeletonLines) do
+                                    line.Visible = false
+                                end
+                            end
+                        end
+                    end)
+                end
+            end
+        end
+    end
+end)
+
+
+
+
+
+
+-- esp
 
 
