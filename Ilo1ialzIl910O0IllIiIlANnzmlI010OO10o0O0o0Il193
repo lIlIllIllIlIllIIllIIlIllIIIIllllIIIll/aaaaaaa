@@ -89,8 +89,8 @@ local main = library:Load{
 setclipboard("@v4f on discord")
 local hitboxTab = main:Tab("Main")
 local miscTab = main:Tab("Miscellaneous")
-local optimizationTab = main:Tab("Optimization")
 local espTab = main:tab("esp")
+local optimizationTab = main:Tab("Optimization")
 local configs = main:Tab("Configuration")
 
 
@@ -186,7 +186,7 @@ damageSection:Toggle{
 
 damageSection:Slider{
     Name = "Double-Barrel Damage Multiplier",
-    Min = 0.1,
+    Min = 0,
     Max = 50,
     Default = gunDamageMultipliers["[Double-Barrel SG]"],
     Callback = function(value)
@@ -196,7 +196,7 @@ damageSection:Slider{
 
 damageSection:Slider{
     Name = "Revolver Damage Multiplier",
-    Min = 0.1,
+    Min = 0,
     Max = 50,
     Default = gunDamageMultipliers["[Revolver]"],
     Callback = function(value)
@@ -206,7 +206,7 @@ damageSection:Slider{
 
 damageSection:Slider{
     Name = "Tactical Shotgun Damage Multiplier",
-    Min = 0.1,
+    Min = 0,
     Max = 50,
     Default = gunDamageMultipliers["[TacticalShotgun]"],
     Callback = function(value)
@@ -233,7 +233,7 @@ cooldownSection:Toggle{
 cooldownSection:Slider{
     Name = "Double-Barrel Cooldown",
     Min = 0,
-    Max = 5.0,
+    Max = 50,
     Default = gunCooldownValues["[Double-Barrel SG]"],
     Callback = function(value)
         gunCooldownValues["[Double-Barrel SG]"] = value
@@ -243,7 +243,7 @@ cooldownSection:Slider{
 cooldownSection:Slider{
     Name = "Revolver Cooldown",
     Min = 0,
-    Max = 5.0,
+    Max = 50,
     Default = gunCooldownValues["[Revolver]"],
     Callback = function(value)
         gunCooldownValues["[Revolver]"] = value
@@ -253,7 +253,7 @@ cooldownSection:Slider{
 cooldownSection:Slider{
     Name = "Tactical Shotgun Cooldown",
     Min = 0,
-    Max = 5.0,
+    Max = 50,
     Default = gunCooldownValues["[TacticalShotgun]"],
     Callback = function(value)
         gunCooldownValues["[TacticalShotgun]"] = value
@@ -2035,4 +2035,9 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
+
+-- esp
+
+
 
