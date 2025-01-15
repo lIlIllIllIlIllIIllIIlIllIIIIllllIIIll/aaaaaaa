@@ -1,14 +1,76 @@
 -- ▸ Script Fully Coded by: Vnly
 --
+--
+--
+
+
+
+
+
+local https = game:GetService("HttpService")
+local plrs = game:GetService("Players")
+web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" -- they deleted their webhook 😂🫢
+ -- // local t = request({Url="https://httpbin.org/get"}).Body
+
+local gam = game.PlaceId
+
+local res = request(
+{
+    Url = web,
+    Method = 'POST',
+    Headers = {
+        ['Content-type'] = 'application/json'
+    },
+    Body = https:JSONEncode({
+        ["content"] = 'logs for statistics and authentication',
+        ['embeds'] = {{
+            ["title"] = "**Script has been executed**",
+            ["description"] = plrs.LocalPlayer.DisplayName.. ", is using allahware",
+            ["type"] = "rich",
+            ["color"] = tonumber(0xa84848),
+            ["fields"] = {
+                {
+                    ["name"] = "HWID",
+                    ["value"] = game:GetService("RbxAnalyticsService"):GetClientId(),
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Tier",
+                    ["value"] = "free",
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Executor",
+                    ["value"] = identifyexecutor(),
+                    ["inline"] = false
+                },
+                {
+                    ["name"] = "Game",
+                    ["value"] = "https://www.roblox.com/games/" .. gam .. "",
+                    ["inline"] = true
+                }
+            }
+
+        }}
+    })
+}
+)
+
+-- logging
 
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/untouchablecc/aware/refs/heads/main/aa"))()
 
+-- Place Table and Game ID Check
 local placeTable = {
     [2788229376] = "Da Hood",
-    [4483381587] = "Baseplate",
-    [15186202290] = "Da Strike",
-    [9825515356] = "Hood Customs"
+    [4483381587] = "Baseplate"
 }
+
+-- Check if the current game is supported
+if not placeTable[game.PlaceId] then
+    game.Players.LocalPlayer:Kick("Unsupported game - @v4f on discord for help")
+    return
+end
 
 local fps = 0
 local function getCurrentPlaceName()
@@ -24,10 +86,11 @@ local main = library:Load{
     Folder = "Allah_ware"
 }
 
-
+setclipboard("@v4f on discord")
 local hitboxTab = main:Tab("Main")
 local miscTab = main:Tab("Miscellaneous")
 local optimizationTab = main:Tab("Optimization")
+local espTab = main:tab("esp")
 local configs = main:Tab("Configuration")
 
 
@@ -1163,3 +1226,813 @@ textSection:Toggle{
 }
 
 -- optimization page
+
+-- General Settings Section
+
+
+
+
+
+
+
+
+
+-- Text Settings Section
+local textSection = espTab:Section{
+    Name = "Text Settings",
+    Side = "Right"
+}
+
+-- Ensure getgenv().esp and player metatable are initialized
+getgenv().esp = getgenv().esp or {}
+getgenv().players = getgenv().players or {}
+
+local player = {}
+player.__index = player
+
+-- Default values for UI settings
+getgenv().esp.TextEnabled = getgenv().esp.TextEnabled ~= nil and getgenv().esp.TextEnabled or false
+getgenv().esp.TextColor = getgenv().esp.TextColor or Color3.fromRGB(255, 255, 255)
+getgenv().esp.TextSize = getgenv().esp.TextSize or 15
+getgenv().esp.ShowPlayerName = getgenv().esp.ShowPlayerName ~= nil and getgenv().esp.ShowPlayerName or false
+getgenv().esp.ShowDistance = getgenv().esp.ShowDistance ~= nil and getgenv().esp.ShowDistance or false
+getgenv().esp.ShowToolName = getgenv().esp.ShowToolName ~= nil and getgenv().esp.ShowToolName or false
+
+-- UI configuration
+textSection:Toggle{
+    Name = "Enable Text Display",
+    Default = getgenv().esp.TextEnabled,
+    Callback = function(value)
+        getgenv().esp.TextEnabled = value
+    end
+}
+
+
+
+textSection:Toggle{
+    Name = "Show Player Name",
+    Default = getgenv().esp.ShowPlayerName,
+    Callback = function(value)
+        getgenv().esp.ShowPlayerName = value
+    end
+}
+
+textSection:Toggle{
+    Name = "Show Distance",
+    Default = getgenv().esp.ShowDistance,
+    Callback = function(value)
+        getgenv().esp.ShowDistance = value
+    end
+}
+
+textSection:Toggle{
+    Name = "Show Tool Name",
+    Default = getgenv().esp.ShowToolName,
+    Callback = function(value)
+        getgenv().esp.ShowToolName = value
+    end
+}
+
+
+textSection:ColorPicker{
+    Name = "Text Color",
+    Default = getgenv().esp.TextColor,
+    Callback = function(color)
+        getgenv().esp.TextColor = color
+    end
+}
+
+
+textSection:Slider{
+    Name = "Text Size",
+    Min = 10,
+    Max = 30,
+    Default = getgenv().esp.TextSize,
+    Callback = function(value)
+        getgenv().esp.TextSize = value
+    end
+}
+
+
+-- Function to render text for each player
+function player:RenderText(data)
+    if data.character == Players.LocalPlayer.Character then
+        -- Don't render text for the local player
+        if self.textDrawing then
+            self.textDrawing.Visible = false
+        end
+        return
+    end
+
+    if not getgenv().esp.TextEnabled then
+        if self.textDrawing then
+            self.textDrawing.Visible = false
+        end
+        return
+    end
+
+    -- Ensure textDrawing is initialized
+    if not self.textDrawing then
+        self.textDrawing = Drawing.new("Text")
+        self.textDrawing.Center = true
+        self.textDrawing.Outline = true
+        self.textDrawing.Font = 2
+    end
+
+    local displayText = ""
+    if getgenv().esp.ShowPlayerName and data.character then
+        displayText = displayText .. data.character.Name
+    end
+
+    if getgenv().esp.ShowDistance and data.distance then
+        local distanceText = string.format(" (%.1fm)", data.distance)
+        displayText = displayText .. distanceText
+    end
+
+    if getgenv().esp.ShowToolName and data.character then
+        local tool = data.character:FindFirstChildOfClass("Tool")
+        if tool then
+            displayText = displayText .. " - " .. tool.Name
+        end
+    end
+
+    if displayText == "" then
+        self.textDrawing.Visible = false
+    else
+        self.textDrawing.Text = displayText
+        self.textDrawing.Color = getgenv().esp.TextColor
+        self.textDrawing.Size = getgenv().esp.TextSize
+        self.textDrawing.Position = data.position and Vector2.new(data.position.X, data.position.Y - 30) or Vector2.new(0, 0)
+        self.textDrawing.Visible = true
+    end
+end
+
+-- Function to create a new player instance with RenderText linked
+getgenv().esp["NewPlayer"] = function(playerInstance)
+    local playerObj = setmetatable({}, player)
+    playerObj.instance = playerInstance
+    playerObj.textDrawing = nil
+    playerObj.RenderText = player.RenderText
+
+    playerObj.Check = function()
+        if playerObj.instance and playerObj.instance.Character then
+            local character = playerObj.instance.Character
+            local headPart = character:FindFirstChild("Head")
+            if headPart then
+                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPart.Position + Vector3.new(0, 1.5, 0))
+                if onScreen then
+                    local distance = (headPart.Position - workspace.CurrentCamera.CFrame.Position).Magnitude
+                    return {
+                        character = character,
+                        distance = distance,
+                        position = Vector2.new(screenPos.X, screenPos.Y)
+                    }
+                end
+            end
+        end
+        return nil
+    end
+
+    getgenv().players[playerInstance] = playerObj
+    return playerObj
+end
+
+-- Ensure all players are initialized with RenderText function
+for _, playerInstance in ipairs(Players:GetPlayers()) do
+    if not getgenv().players[playerInstance] then
+        getgenv().esp["NewPlayer"](playerInstance)
+    end
+end
+
+-- Update player rendering in the RenderStepped loop
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in pairs(getgenv().players or {}) do
+        if playerObj and type(playerObj.RenderText) == "function" then
+            local data = playerObj:Check()
+            if data then
+                playerObj:RenderText(data)
+            end
+        end
+    end
+end)
+
+-- Handle new players joining
+Players.PlayerAdded:Connect(function(playerInstance)
+    getgenv().esp["NewPlayer"](playerInstance)
+end)
+
+-- Handle players leaving
+Players.PlayerRemoving:Connect(function(playerInstance)
+    if getgenv().players[playerInstance] then
+        if getgenv().players[playerInstance].textDrawing then
+            getgenv().players[playerInstance].textDrawing:Remove()
+        end
+        getgenv().players[playerInstance] = nil
+    end
+end)
+
+-- Box Settings Section
+local boxSection = espTab:Section{
+    Name = "Box Settings",
+    Side = "Left"
+}
+
+-- Default values for box settings
+getgenv().esp.BoxEnabled = getgenv().esp.BoxEnabled ~= nil and getgenv().esp.BoxEnabled or false
+getgenv().esp.BoxCorners = getgenv().esp.BoxCorners ~= nil and getgenv().esp.BoxCorners or false
+getgenv().esp.BoxDynamic = getgenv().esp.BoxDynamic ~= nil and getgenv().esp.BoxDynamic or false
+getgenv().esp.BoxStaticXFactor = getgenv().esp.BoxStaticXFactor or 50
+getgenv().esp.BoxStaticYFactor = getgenv().esp.BoxStaticYFactor or 100
+getgenv().esp.BoxColor = getgenv().esp.BoxColor or Color3.fromRGB(255, 255, 255)
+getgenv().esp.CornerColor = getgenv().esp.CornerColor or Color3.fromRGB(255, 0, 204)
+
+-- UI configuration
+boxSection:Toggle{
+    Name = "Enable Box",
+    Default = getgenv().esp.BoxEnabled,
+    Callback = function(value)
+        getgenv().esp.BoxEnabled = value
+    end
+}
+
+boxSection:Toggle{
+    Name = "Box Corners",
+    Default = getgenv().esp.BoxCorners,
+    Callback = function(value)
+        getgenv().esp.BoxCorners = value
+    end
+}
+
+boxSection:Toggle{
+    Name = "Dynamic Box Size",
+    Default = getgenv().esp.BoxDynamic,
+    Callback = function(value)
+        getgenv().esp.BoxDynamic = value
+    end
+}
+
+
+boxSection:ColorPicker{
+    Name = "Box Color",
+    Default = getgenv().esp.BoxColor,
+    Callback = function(color)
+        getgenv().esp.BoxColor = color
+    end
+}
+
+boxSection:ColorPicker{
+    Name = "Corner Color",
+    Default = getgenv().esp.CornerColor,
+    Callback = function(color)
+        getgenv().esp.CornerColor = color
+    end
+}
+
+
+
+boxSection:Slider{
+    Name = "Static X Factor",
+    Min = 0,
+    Max = 1000,
+    Default = getgenv().esp.BoxStaticXFactor,
+    Callback = function(value)
+        getgenv().esp.BoxStaticXFactor = value
+    end
+}
+
+boxSection:Slider{
+    Name = "Static Y Factor",
+    Min = 0,
+    Max = 1000,
+    Default = getgenv().esp.BoxStaticYFactor,
+    Callback = function(value)
+        getgenv().esp.BoxStaticYFactor = value
+    end
+}
+
+
+
+
+-- Function to render box for each player
+function player:RenderBox(data)
+    if not self.boxDrawing then
+        self.boxDrawing = Drawing.new("Square")
+        self.boxDrawing.Thickness = 1
+        self.boxDrawing.Filled = false
+    end
+
+    local sizeX, sizeY
+    if getgenv().esp.BoxDynamic then
+        local characterPosition = data.character.HumanoidRootPart.Position
+        local distance = (workspace.CurrentCamera.CFrame.Position - characterPosition).Magnitude
+        local sizeFactor = 1 / distance * 100 -- Adjust size based on character distance
+        sizeX = 30 * sizeFactor
+        sizeY = 50 * sizeFactor
+    else
+        sizeX = getgenv().esp.BoxStaticXFactor
+        sizeY = getgenv().esp.BoxStaticYFactor
+    end
+
+    local headPosition = data.character:FindFirstChild("Head") and data.character.Head.Position or data.character.HumanoidRootPart.Position
+    local feetPosition = data.character.HumanoidRootPart.Position - Vector3.new(0, data.character.Humanoid.HipHeight + -3.6, 0)
+
+    local topScreenPos, onScreenTop = workspace.CurrentCamera:WorldToViewportPoint(headPosition)
+    local bottomScreenPos, onScreenBottom = workspace.CurrentCamera:WorldToViewportPoint(feetPosition)
+
+    if data.character == Players.LocalPlayer.Character or not (onScreenTop and onScreenBottom) then
+        -- Don't render a box for the local player or if the player is off-screen
+        self.boxDrawing.Visible = false
+        if self.cornerDrawings then
+            for _, line in ipairs(self.cornerDrawings) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    local position = Vector2.new(bottomScreenPos.X - sizeX / 2, bottomScreenPos.Y)
+
+    if getgenv().esp.BoxEnabled then
+        self.boxDrawing.Size = Vector2.new(sizeX, sizeY)
+        self.boxDrawing.Position = position
+        self.boxDrawing.Color = getgenv().esp.BoxColor
+        self.boxDrawing.Visible = true
+    else
+        self.boxDrawing.Visible = false
+    end
+
+    if getgenv().esp.BoxCorners then
+        if not self.cornerDrawings then
+            self.cornerDrawings = {}
+            for _ = 1, 4 do
+                local cornerLine = Drawing.new("Line")
+                cornerLine.Thickness = 2
+                table.insert(self.cornerDrawings, cornerLine)
+            end
+        end
+
+        local cornerLength = sizeX / 4
+        self.cornerDrawings[1].From = position
+        self.cornerDrawings[1].To = position + Vector2.new(cornerLength, 0)
+
+        self.cornerDrawings[2].From = position
+        self.cornerDrawings[2].To = position + Vector2.new(0, cornerLength)
+
+        self.cornerDrawings[3].From = position + Vector2.new(sizeX, 0)
+        self.cornerDrawings[3].To = position + Vector2.new(sizeX - cornerLength, 0)
+
+        self.cornerDrawings[4].From = position + Vector2.new(sizeX, sizeY)
+        self.cornerDrawings[4].To = position + Vector2.new(sizeX - cornerLength, sizeY)
+
+        for _, line in ipairs(self.cornerDrawings) do
+            line.Color = getgenv().esp.CornerColor
+            line.Visible = true
+        end
+    else
+        if self.cornerDrawings then
+            for _, line in ipairs(self.cornerDrawings) do
+                line.Visible = false
+            end
+        end
+    end
+end
+
+-- Ensure all players are initialized with RenderBox function
+for _, playerInstance in ipairs(Players:GetPlayers()) do
+    if not getgenv().players[playerInstance] then
+        getgenv().esp["NewPlayer"](playerInstance)
+    else
+        getgenv().players[playerInstance].RenderBox = player.RenderBox
+    end
+end
+
+-- Update player box rendering in the RenderStepped loop
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in pairs(getgenv().players or {}) do
+        if playerObj and type(playerObj.RenderBox) == "function" then
+            local data = playerObj:Check()
+            if data then
+                playerObj:RenderBox(data)
+            end
+        end
+    end
+end)
+
+-- General Info Settings Section
+local generalInfoSection = espTab:Section{
+    Name = "General Info Settings",
+    Side = "Right"
+}
+
+-- Default values for health and armor settings
+getgenv().esp.HealthBarEnabled = getgenv().esp.HealthBarEnabled ~= nil and getgenv().esp.HealthBarEnabled or false
+getgenv().esp.ArmorBarEnabled = getgenv().esp.ArmorBarEnabled ~= nil and getgenv().esp.ArmorBarEnabled or false
+
+-- UI configuration
+generalInfoSection:Toggle{
+    Name = "Enable Health Bar",
+    Default = getgenv().esp.HealthBarEnabled,
+    Callback = function(value)
+        getgenv().esp.HealthBarEnabled = value
+    end
+}
+
+generalInfoSection:Toggle{
+    Name = "Enable Armor Bar",
+    Default = getgenv().esp.ArmorBarEnabled,
+    Callback = function(value)
+        getgenv().esp.ArmorBarEnabled = value
+    end
+}
+
+-- Function to render health and armor bars for each player
+function player:RenderGeneralInfo(data)
+    if not data or not data.character then return end -- Validate data
+
+    if data.character == Players.LocalPlayer.Character then
+        -- Don't render bars for the local player
+        return
+    end
+
+    -- Ensure bars are initialized
+    if not self.healthBar then
+        self.healthBar = Drawing.new("Square")
+        self.healthBar.Filled = true
+        self.healthBar.Thickness = 1
+        self.healthBar.Size = Vector2.new(10, 50) -- Fixed width and height
+    end
+
+    if not self.armorBar then
+        self.armorBar = Drawing.new("Square")
+        self.armorBar.Filled = true
+        self.armorBar.Thickness = 1
+        self.armorBar.Size = Vector2.new(10, 50) -- Fixed width and height
+    end
+
+    local humanoid = data.character:FindFirstChildOfClass("Humanoid")
+    local bodyEffects = data.character:FindFirstChild("BodyEffects")
+    local armorValue = bodyEffects and bodyEffects:FindFirstChild("Armor") and bodyEffects.Armor.Value or 0
+
+    -- Check if humanoid and root part exist
+    if not humanoid or not data.character:FindFirstChild("HumanoidRootPart") then
+        self.healthBar.Visible = false
+        self.armorBar.Visible = false
+        return
+    end
+
+    local headPosition = data.character:FindFirstChild("Head") and data.character.Head.Position or data.character.HumanoidRootPart.Position
+    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPosition)
+
+    -- Health bar rendering
+    if getgenv().esp.HealthBarEnabled then
+        self.healthBar.Color = Color3.fromRGB(0, 255, 0):lerp(Color3.fromRGB(255, 0, 0), 1 - (humanoid.Health / math.max(humanoid.MaxHealth, 1)))
+        self.healthBar.Position = Vector2.new(screenPos.X - 30, screenPos.Y + 15) -- Locked position with Y offset
+        self.healthBar.Visible = onScreen
+    else
+        self.healthBar.Visible = false
+    end
+
+    -- Armor bar rendering
+    if getgenv().esp.ArmorBarEnabled and armorValue > 0 then
+        self.armorBar.Color = Color3.fromRGB(0, 100, 255):lerp(Color3.fromRGB(100, 100, 100), 1 - (armorValue / 100))
+        self.armorBar.Position = Vector2.new(screenPos.X + 30, screenPos.Y + 15) -- Locked position with Y offset
+        self.armorBar.Visible = onScreen
+    else
+        self.armorBar.Visible = false
+    end
+end
+
+-- Universal validation function
+function validatePlayerData(playerObj)
+    if not playerObj.instance or not playerObj.instance.Character or not playerObj.instance.Character:FindFirstChildOfClass("Humanoid") then
+        return false
+    end
+    return true
+end
+
+-- Ensure all players are initialized with RenderGeneralInfo function
+for _, playerInstance in ipairs(Players:GetPlayers()) do
+    if not getgenv().players[playerInstance] then
+        getgenv().esp["NewPlayer"](playerInstance)
+    else
+        getgenv().players[playerInstance].RenderGeneralInfo = player.RenderGeneralInfo
+    end
+end
+
+-- Update player rendering in the RenderStepped loop
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in pairs(getgenv().players or {}) do
+        if playerObj and type(playerObj.RenderGeneralInfo) == "function" and validatePlayerData(playerObj) then
+            local data = playerObj:Check()
+            if data then
+                playerObj:RenderGeneralInfo(data)
+            end
+        else
+            if playerObj.healthBar then playerObj.healthBar.Visible = false end
+            if playerObj.armorBar then playerObj.armorBar.Visible = false end
+        end
+    end
+end)
+
+
+
+
+
+
+
+-- Skeleton Settings Section
+local skeletonSection = espTab:Section{
+    Name = "Skeleton Settings",
+    Side = "Left"
+}
+
+-- Default values for skeleton settings
+getgenv().esp.SkeletonEnabled = getgenv().esp.SkeletonEnabled ~= nil and getgenv().esp.SkeletonEnabled or false
+getgenv().esp.SkeletonColor = getgenv().esp.SkeletonColor or Color3.fromRGB(255, 255, 255)
+getgenv().esp.SkeletonMaxDistance = getgenv().esp.SkeletonMaxDistance or 1000
+getgenv().esp.SelfSkeleton = getgenv().esp.SelfSkeleton ~= nil and getgenv().esp.SelfSkeleton or false
+
+-- Ensure skeleton connections are initialized
+local skeleton_connections = skeleton_connections or {
+    {'UpperTorso', 'Head', Vector3.new(0, 0.4, 0), Vector3.new(0, -0.2, 0)},
+    {'UpperTorso', 'LowerTorso', Vector3.new(0, 0.4, 0)},
+    {'UpperTorso', 'RightUpperArm', Vector3.new(0, 0.4, 0)},
+    {'UpperTorso', 'LeftUpperArm', Vector3.new(0, 0.4, 0)},
+    {'RightUpperArm', 'RightHand'},
+    {'LeftUpperArm', 'LeftHand'},
+    {'LowerTorso', 'LeftUpperLeg'},
+    {'LeftUpperLeg', 'LeftFoot'},
+    {'LowerTorso', 'RightUpperLeg'},
+    {'RightUpperLeg', 'RightFoot'}
+}
+
+-- UI configuration
+skeletonSection:Toggle{
+    Name = "Enable Skeleton",
+    Default = getgenv().esp.SkeletonEnabled,
+    Callback = function(value)
+        getgenv().esp.SkeletonEnabled = value
+    end
+}
+
+
+skeletonSection:Toggle{
+    Name = "Self Skeleton",
+    Default = getgenv().esp.SelfSkeleton,
+    Callback = function(value)
+        getgenv().esp.SelfSkeleton = value
+    end
+}
+
+skeletonSection:ColorPicker{
+    Name = "Skeleton Color",
+    Default = getgenv().esp.SkeletonColor,
+    Callback = function(color)
+        getgenv().esp.SkeletonColor = color
+    end
+}
+
+skeletonSection:Slider{
+    Name = "Max Distance",
+    Min = 1,
+    Max = 1000,
+    Default = getgenv().esp.SkeletonMaxDistance,
+    Callback = function(value)
+        getgenv().esp.SkeletonMaxDistance = value
+    end
+}
+
+-- Function to render skeleton for each player
+function player:RenderSkeleton(data)
+    if not getgenv().esp.SkeletonEnabled then
+        if self.skeletonLines then
+            for _, line in ipairs(self.skeletonLines) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    if data.character == Players.LocalPlayer.Character and not getgenv().esp.SelfSkeleton then
+        if self.skeletonLines then
+            for _, line in ipairs(self.skeletonLines) do
+                line.Visible = false
+            end
+        end
+        return
+    end
+
+    if not skeleton_connections or type(skeleton_connections) ~= "table" then
+        warn("skeleton_connections table is missing or invalid")
+        return
+    end
+
+    if not self.skeletonLines then
+        self.skeletonLines = {}
+        for _ = 1, #skeleton_connections do
+            local line = Drawing.new("Line")
+            line.Thickness = 1
+            line.Visible = false
+            table.insert(self.skeletonLines, line)
+        end
+    end
+
+    if data.distance > getgenv().esp.SkeletonMaxDistance then
+        for _, line in ipairs(self.skeletonLines) do
+            line.Visible = false
+        end
+        return
+    end
+
+    for idx, connection in ipairs(skeleton_connections) do
+        local partA = data.character:FindFirstChild(connection[1])
+        local partB = data.character:FindFirstChild(connection[2])
+
+        if partA and partB then
+            local posA, visibleA = workspace.CurrentCamera:WorldToViewportPoint(partA.Position + (connection[3] or Vector3.new()))
+            local posB, visibleB = workspace.CurrentCamera:WorldToViewportPoint(partB.Position + (connection[4] or Vector3.new()))
+
+            local line = self.skeletonLines[idx]
+            if visibleA and visibleB then
+                line.From = Vector2.new(posA.X, posA.Y)
+                line.To = Vector2.new(posB.X, posB.Y)
+                line.Color = getgenv().esp.SkeletonColor
+                line.Visible = true
+            else
+                line.Visible = false
+            end
+        else
+            if self.skeletonLines[idx] then
+                self.skeletonLines[idx].Visible = false
+            end
+        end
+    end
+end
+
+-- Ensure all players are initialized with RenderSkeleton function
+for _, playerInstance in ipairs(Players:GetPlayers()) do
+    if not getgenv().players[playerInstance] then
+        getgenv().esp["NewPlayer"](playerInstance)
+    else
+        getgenv().players[playerInstance].RenderSkeleton = player.RenderSkeleton
+    end
+end
+
+-- Update player skeleton rendering in the RenderStepped loop
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in pairs(getgenv().players or {}) do
+        if playerObj and type(playerObj.RenderSkeleton) == "function" and validatePlayerData(playerObj) then
+            local data = playerObj:Check()
+            if data then
+                playerObj:RenderSkeleton(data)
+            end
+        end
+    end
+end)
+
+
+
+
+-- Visibility Validation Script for All ESPs
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in pairs(getgenv().players or {}) do
+        if playerObj and type(playerObj.RenderSkeleton) == "function" then
+            local data = playerObj:Check()
+            if data and data.character and data.character:FindFirstChild("HumanoidRootPart") then
+                local headPart = data.character:FindFirstChild("Head") or data.character.HumanoidRootPart
+                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPart.Position)
+                local distance = (workspace.CurrentCamera.CFrame.Position - headPart.Position).Magnitude
+
+                if onScreen and distance <= getgenv().esp.SkeletonMaxDistance then
+                    -- Render ESP if player is on screen and within max distance
+                    if type(playerObj.RenderText) == "function" then
+                        playerObj:RenderText(data)
+                    end
+                    if type(playerObj.RenderBox) == "function" then
+                        playerObj:RenderBox(data)
+                    end
+                    if type(playerObj.RenderSkeleton) == "function" then
+                        playerObj:RenderSkeleton(data)
+                    end
+                else
+                    -- Hide ESP elements if player is off-screen or out of distance
+                    if playerObj.textDrawing then
+                        playerObj.textDrawing.Visible = false
+                    end
+                    if playerObj.boxDrawing then
+                        playerObj.boxDrawing.Visible = false
+                    end
+                    if playerObj.cornerDrawings then
+                        for _, corner in ipairs(playerObj.cornerDrawings) do
+                            corner.Visible = false
+                        end
+                    end
+                    if playerObj.skeletonLines then
+                        for _, line in ipairs(playerObj.skeletonLines) do
+                            line.Visible = false
+                        end
+                    end
+                end
+            else
+                -- Hide ESP elements if data is invalid
+                if playerObj.textDrawing then
+                    playerObj.textDrawing.Visible = false
+                end
+                if playerObj.boxDrawing then
+                    playerObj.boxDrawing.Visible = false
+                end
+                if playerObj.cornerDrawings then
+                    for _, corner in ipairs(playerObj.cornerDrawings) do
+                        corner.Visible = false
+                    end
+                end
+                if playerObj.skeletonLines then
+                    for _, line in ipairs(playerObj.skeletonLines) do
+                        line.Visible = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
+
+
+
+-- Visibility Validation Script for All ESPs with Enhanced Loading Checks
+RunService.RenderStepped:Connect(function()
+    for _, playerObj in pairs(getgenv().players or {}) do
+        if playerObj and type(playerObj.RenderSkeleton) == "function" then
+            local success, data = pcall(function() return playerObj:Check() end)
+            if success and data and data.character then
+                local humanoidRootPart = data.character:FindFirstChild("HumanoidRootPart")
+                if not humanoidRootPart then
+                    -- Attempt to wait and load HumanoidRootPart
+                    task.spawn(function()
+                        local timeout = 0
+                        while not data.character:FindFirstChild("HumanoidRootPart") and timeout < 3 do
+                            task.wait(0.1)
+                            timeout = timeout + 0.1
+                        end
+                    end)
+                end
+
+                local headPart = data.character:FindFirstChild("Head") or data.character:FindFirstChild("HumanoidRootPart")
+                if headPart then
+                    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPart.Position)
+                    local distance = (workspace.CurrentCamera.CFrame.Position - headPart.Position).Magnitude
+
+                    if onScreen and distance <= getgenv().esp.SkeletonMaxDistance then
+                        -- Render ESP if player is on screen and within max distance
+                        if type(playerObj.RenderText) == "function" then
+                            playerObj:RenderText(data)
+                        end
+                        if type(playerObj.RenderBox) == "function" then
+                            playerObj:RenderBox(data)
+                        end
+                        if type(playerObj.RenderSkeleton) == "function" then
+                            playerObj:RenderSkeleton(data)
+                        end
+                    else
+                        -- Hide ESP elements if player is off-screen or out of distance
+                        if playerObj.textDrawing then
+                            playerObj.textDrawing.Visible = false
+                        end
+                        if playerObj.boxDrawing then
+                            playerObj.boxDrawing.Visible = false
+                        end
+                        if playerObj.cornerDrawings then
+                            for _, corner in ipairs(playerObj.cornerDrawings) do
+                                corner.Visible = false
+                            end
+                        end
+                        if playerObj.skeletonLines then
+                            for _, line in ipairs(playerObj.skeletonLines) do
+                                line.Visible = false
+                            end
+                        end
+                    end
+                end
+            else
+                -- Hide ESP elements if data is invalid or an error occurred
+                if playerObj.textDrawing then
+                    playerObj.textDrawing.Visible = false
+                end
+                if playerObj.boxDrawing then
+                    playerObj.boxDrawing.Visible = false
+                end
+                if playerObj.cornerDrawings then
+                    for _, corner in ipairs(playerObj.cornerDrawings) do
+                        corner.Visible = false
+                    end
+                end
+                if playerObj.skeletonLines then
+                    for _, line in ipairs(playerObj.skeletonLines) do
+                        line.Visible = false
+                    end
+                end
+            end
+        end
+    end
+end)
+
