@@ -9,8 +9,8 @@
 
 local https = game:GetService("HttpService")
 local plrs = game:GetService("Players")
-web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" -- they deleted their webhook 😂🫢
- -- // local t = request({Url="https://httpbin.org/get"}).Body
+web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" 
+
 
 local gam = game.PlaceId
 
@@ -60,13 +60,13 @@ local res = request(
 
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/untouchablecc/aware/refs/heads/main/aa"))()
 
--- Place Table and Game ID Check
+
 local placeTable = {
     [2788229376] = "Da Hood",
     [4483381587] = "Baseplate"
 }
 
--- Check if the current game is supported
+
 if not placeTable[game.PlaceId] then
     game.Players.LocalPlayer:Kick("Unsupported game - @v4f on discord for help")
     return
@@ -96,7 +96,7 @@ local configs = main:Tab("Configuration")
 
 
 
--- Services
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
@@ -108,13 +108,13 @@ local gunRangeValues = {
 }
 
 local gunDamageMultipliers = {
-    ["[Double-Barrel SG]"] = 1.0, -- Default multiplier (1x)
+    ["[Double-Barrel SG]"] = 1.0, 
     ["[Revolver]"] = 1.0,
     ["[TacticalShotgun]"] = 1.0
 }
 
 local gunCooldownValues = {
-    ["[Double-Barrel SG]"] = 1.0, -- Default cooldown
+    ["[Double-Barrel SG]"] = 1.0, 
     ["[Revolver]"] = 1.0,
     ["[TacticalShotgun]"] = 1.0
 }
@@ -123,7 +123,7 @@ getgenv().GunRangeEnabled = false
 getgenv().GunDamageEnabled = false
 getgenv().GunCooldownEnabled = false
 
--- Gun Range Section
+
 local rangeSection = miscTab:Section{
     Name = "Gun Range Settings",
     Side = "Left"
@@ -169,7 +169,7 @@ rangeSection:Slider{
     end
 }
 
--- Gun Damage Section
+
 local damageSection = miscTab:Section{
     Name = "Gun Damage Settings",
     Side = "Right"
@@ -215,7 +215,7 @@ damageSection:Slider{
     end
 }
 
--- Gun Shooting Cooldown Section
+
 local cooldownSection = miscTab:Section{
     Name = "Shooting Cooldown Settings",
     Side = "Left"
@@ -261,10 +261,10 @@ cooldownSection:Slider{
     end
 }
 
--- Function to Continuously Apply Custom Gun Properties When Enabled
+
 local function applyGunProperties()
     while true do
-        task.wait(0.1) -- Interval to apply settings
+        task.wait(0.1) 
         if getgenv().GunRangeEnabled or getgenv().GunDamageEnabled or getgenv().GunCooldownEnabled then
             pcall(function()
                 for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
@@ -272,14 +272,14 @@ local function applyGunProperties()
                         for _, obj in ipairs(tool:GetChildren()) do
                             if obj:IsA("NumberValue") then
                                 if obj.Name:lower():find("range") and getgenv().GunRangeEnabled then
-                                    obj.Value = gunRangeValues[tool.Name] -- Set range to the custom value
+                                    obj.Value = gunRangeValues[tool.Name] 
                                 elseif obj.Name:lower():find("damage") and getgenv().GunDamageEnabled then
-                                    obj.Value = obj.Value * gunDamageMultipliers[tool.Name] -- Apply damage multiplier
+                                    obj.Value = obj.Value * gunDamageMultipliers[tool.Name]
                                 elseif obj.Name:lower():find("cooldown") and getgenv().GunCooldownEnabled then
                                     if gunCooldownValues[tool.Name] == 0 then
-                                        obj:Destroy() -- Remove cooldown by deleting the value
+                                        obj:Destroy() 
                                     else
-                                        obj.Value = gunCooldownValues[tool.Name] -- Set custom cooldown
+                                        obj.Value = gunCooldownValues[tool.Name] 
                                     end
                                 end
                             end
@@ -294,14 +294,14 @@ local function applyGunProperties()
                             for _, obj in ipairs(tool:GetChildren()) do
                                 if obj:IsA("NumberValue") then
                                     if obj.Name:lower():find("range") and getgenv().GunRangeEnabled then
-                                        obj.Value = gunRangeValues[tool.Name] -- Set range to the custom value
+                                        obj.Value = gunRangeValues[tool.Name] 
                                     elseif obj.Name:lower():find("damage") and getgenv().GunDamageEnabled then
-                                        obj.Value = obj.Value * gunDamageMultipliers[tool.Name] -- Apply damage multiplier
+                                        obj.Value = obj.Value * gunDamageMultipliers[tool.Name] 
                                     elseif obj.Name:lower():find("cooldown") and getgenv().GunCooldownEnabled then
                                         if gunCooldownValues[tool.Name] == 0 then
-                                            obj:Destroy() -- Remove cooldown by deleting the value
+                                            obj:Destroy() 
                                         else
-                                            obj.Value = gunCooldownValues[tool.Name] -- Set custom cooldown
+                                            obj.Value = gunCooldownValues[tool.Name] 
                                         end
                                     end
                                 end
@@ -311,13 +311,13 @@ local function applyGunProperties()
                 end
             end)
         else
-            -- Ensure default game settings remain untouched if all options are disabled
+            
             task.wait(1)
         end
     end
 end
 
--- Start applying gun properties in the background only when enabled
+
 coroutine.wrap(applyGunProperties)()
 
 
@@ -369,7 +369,7 @@ local GunTypes = {
     ['[SilencerAR]'] = 'Other'
 }
 
-local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320} -- User IDs to ignore hitbox expander
+local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320} 
 
 local function getClosestPlayerToCursor()
     local mouse = LocalPlayer:GetMouse()
@@ -418,7 +418,7 @@ local function VnlyRestoreBloodEffects(char)
     end
 end
 
--- Function to check if a player is knocked out
+
 local function isKnockedOut(player)
     local character = player.Character
     if not character then return true end
@@ -426,20 +426,20 @@ local function isKnockedOut(player)
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return true end
 
-    -- Check for custom knock-out status (specific to Da Hood-style games)
+
     local bodyEffects = character:FindFirstChild("BodyEffects")
     if bodyEffects then
         local koStatus = bodyEffects:FindFirstChild("K.O")
         if koStatus and koStatus.Value then
-            return true -- Player is knocked out if K.O value is true
+            return true 
         end
     end
 
-    -- Check for zero health or specific states indicating knock-out or death
+
     return humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead or humanoid:GetState() == Enum.HumanoidStateType.Physics or humanoid.Sit
 end
 
--- Usage example for detecting knock-outs during runtime
+
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         while task.wait(0.1) do
@@ -512,7 +512,7 @@ local function VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVis
     end
 end
 
--- UI Control
+
 local generalSection = hitboxTab:Section{
     Name = "HBE",
     Side = "Left"
@@ -545,7 +545,7 @@ local autoTarget = false
 local boxVisual = false
 local gunDetection = false
 
--- Keybind Toggle
+
 generalSection:Keybind{
     Name = "Toggle Keybind",
     Default = toggleKey,
@@ -554,7 +554,7 @@ generalSection:Keybind{
     end
 }
 
--- Toggles
+
 toggleSection:Toggle{
     Name = "Everyone Mode",
     Default = everyoneMode,
@@ -595,7 +595,7 @@ toggleSection:Toggle{
     end
 }
 
--- Hitbox Sizes for Each Gun Type
+
 local gunSizeSliders = {
     Shotgun = {SizeX = 4, SizeY = 3, SizeZ = 6},
     Pistol = {SizeX = 5, SizeY = 3, SizeZ = 6},
@@ -845,7 +845,7 @@ local configsection = configs:Section{Name = "Configs", Side = "Left"}
 
 local configlist = configsection:Dropdown{
     Name = "Configs",
-    Content = library:GetConfigs(), -- GetConfigs(true) if you want universal configs
+    Content = library:GetConfigs(), 
     Flag = "Config Dropdown"
 }
 
@@ -854,14 +854,14 @@ library:ConfigIgnore("Config Dropdown")
 local loadconfig = configsection:Button{
     Name = "Load Config",
     Callback = function()
-        library:LoadConfig(library.flags["Config Dropdown"]) -- LoadConfig(library.flags["Config Dropdown"], true)  if you want universal configs
+        library:LoadConfig(library.flags["Config Dropdown"]) 
     end
 }
 
 local delconfig = configsection:Button{
     Name = "Delete Config",
     Callback = function()
-        library:DeleteConfig(library.flags["Config Dropdown"]) -- DeleteConfig(library.flags["Config Dropdown"], true)  if you want universal configs
+        library:DeleteConfig(library.flags["Config Dropdown"]) 
         configlist:Refresh(library:GetConfigs())
     end
 }
@@ -878,7 +878,7 @@ library:ConfigIgnore("Config Name")
 local save = configsection:Button{
     Name = "Save Config",
     Callback = function()
-        library:SaveConfig(library.flags["Config Dropdown"] or library.flags["Config Name"]) -- SaveConfig(library.flags["Config Name"], true) if you want universal configs
+        library:SaveConfig(library.flags["Config Dropdown"] or library.flags["Config Name"]) 
         configlist:Refresh(library:GetConfigs())
     end
 }
@@ -910,7 +910,7 @@ keybindsection:Keybind{
 }
 -- settings page
 
--- General Settings Section
+
 local generalSection = optimizationTab:Section{
     Name = "General Settings",
     Side = "Left"
@@ -922,11 +922,11 @@ generalSection:Slider{
     Max = 1000,
     Default = 100,
     Callback = function(value)
-        -- Only wait when triggered by the user
+        
     end
 }
 
--- FPS Cap Section
+
 local fpsCapSection = optimizationTab:Section{
     Name = "FPS Cap Settings",
     Side = "Right"
@@ -944,7 +944,7 @@ fpsCapSection:Slider{
     end
 }
 
--- Player Settings Section
+
 local playerSection = optimizationTab:Section{
     Name = "Player Settings",
     Side = "Left"
@@ -954,7 +954,7 @@ playerSection:Toggle{
     Name = "Ignore Local Player",
     Default = false,
     Callback = function(enabled)
-        -- No action unless toggled
+      
     end
 }
 
@@ -962,7 +962,7 @@ playerSection:Toggle{
     Name = "Ignore Others",
     Default = false,
     Callback = function(enabled)
-        -- No action unless toggled
+        
     end
 }
 
@@ -970,11 +970,11 @@ playerSection:Toggle{
     Name = "Ignore Tools",
     Default = false,
     Callback = function(enabled)
-        -- No action unless toggled
+       
     end
 }
 
--- Rendering Settings Section
+
 local renderingSection = optimizationTab:Section{
     Name = "Rendering Settings",
     Side = "Right"
@@ -1029,7 +1029,7 @@ renderingSection:Toggle{
     end
 }
 
--- Terrain Settings Section
+
 local terrainSection = optimizationTab:Section{
     Name = "Terrain Settings",
     Side = "Left"
@@ -1051,11 +1051,11 @@ terrainSection:Toggle{
     Name = "No Decorations",
     Default = false,
     Callback = function(enabled)
-        -- Placeholder for decorations handling
+       
     end
 }
 
--- Visual Effects Section
+
 local visualsSection = optimizationTab:Section{
     Name = "Visual Effects Settings",
     Side = "Right"
@@ -1133,7 +1133,7 @@ visualsSection:Toggle{
     end
 }
 
--- Mesh Settings Section
+
 local meshSection = optimizationTab:Section{
     Name = "Mesh Settings",
     Side = "Left"
@@ -1166,7 +1166,7 @@ meshSection:Toggle{
     end
 }
 
--- Image Settings Section
+
 local imageSection = optimizationTab:Section{
     Name = "Image Settings",
     Side = "Right"
@@ -1188,7 +1188,7 @@ imageSection:Toggle{
     Name = "Low Detail Images",
     Default = false,
     Callback = function(enabled)
-        -- Placeholder for future low-detail image logic
+   
     end
 }
 
@@ -1206,7 +1206,7 @@ imageSection:Toggle{
     end
 }
 
--- Text Settings Section
+
 local textSection = optimizationTab:Section{
     Name = "Text Settings",
     Side = "Left"
@@ -1253,7 +1253,6 @@ textSection:Toggle{
 
 -- optimization page
 
--- General Settings Section
 
 
 
@@ -1263,20 +1262,21 @@ textSection:Toggle{
 
 
 
--- Text Settings Section
+
+
 local textSection = espTab:Section{
     Name = "Text Settings",
     Side = "Right"
 }
 
--- Ensure getgenv().esp and player metatable are initialized
+
 getgenv().esp = getgenv().esp or {}
 getgenv().players = getgenv().players or {}
 
 local player = {}
 player.__index = player
 
--- Default values for UI settings
+
 getgenv().esp.TextEnabled = getgenv().esp.TextEnabled ~= nil and getgenv().esp.TextEnabled or false
 getgenv().esp.TextColor = getgenv().esp.TextColor or Color3.fromRGB(255, 255, 255)
 getgenv().esp.TextSize = getgenv().esp.TextSize or 15
@@ -1284,7 +1284,7 @@ getgenv().esp.ShowPlayerName = getgenv().esp.ShowPlayerName ~= nil and getgenv()
 getgenv().esp.ShowDistance = getgenv().esp.ShowDistance ~= nil and getgenv().esp.ShowDistance or false
 getgenv().esp.ShowToolName = getgenv().esp.ShowToolName ~= nil and getgenv().esp.ShowToolName or false
 
--- UI configuration
+
 textSection:Toggle{
     Name = "Enable Text Display",
     Default = getgenv().esp.TextEnabled,
@@ -1340,10 +1340,10 @@ textSection:Slider{
 }
 
 
--- Function to render text for each player
+
 function player:RenderText(data)
     if data.character == Players.LocalPlayer.Character then
-        -- Don't render text for the local player
+
         if self.textDrawing then
             self.textDrawing.Visible = false
         end
@@ -1357,7 +1357,7 @@ function player:RenderText(data)
         return
     end
 
-    -- Ensure textDrawing is initialized
+
     if not self.textDrawing then
         self.textDrawing = Drawing.new("Text")
         self.textDrawing.Center = true
@@ -1393,7 +1393,7 @@ function player:RenderText(data)
     end
 end
 
--- Function to create a new player instance with RenderText linked
+
 getgenv().esp["NewPlayer"] = function(playerInstance)
     local playerObj = setmetatable({}, player)
     playerObj.instance = playerInstance
@@ -1423,14 +1423,14 @@ getgenv().esp["NewPlayer"] = function(playerInstance)
     return playerObj
 end
 
--- Ensure all players are initialized with RenderText function
+
 for _, playerInstance in ipairs(Players:GetPlayers()) do
     if not getgenv().players[playerInstance] then
         getgenv().esp["NewPlayer"](playerInstance)
     end
 end
 
--- Update player rendering in the RenderStepped loop
+
 RunService.RenderStepped:Connect(function()
     for _, playerObj in pairs(getgenv().players or {}) do
         if playerObj and type(playerObj.RenderText) == "function" then
@@ -1442,12 +1442,12 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Handle new players joining
+
 Players.PlayerAdded:Connect(function(playerInstance)
     getgenv().esp["NewPlayer"](playerInstance)
 end)
 
--- Handle players leaving
+
 Players.PlayerRemoving:Connect(function(playerInstance)
     if getgenv().players[playerInstance] then
         if getgenv().players[playerInstance].textDrawing then
@@ -1457,13 +1457,13 @@ Players.PlayerRemoving:Connect(function(playerInstance)
     end
 end)
 
--- Box Settings Section
+
 local boxSection = espTab:Section{
     Name = "Box Settings",
     Side = "Left"
 }
 
--- Default values for box settings
+
 getgenv().esp.BoxEnabled = getgenv().esp.BoxEnabled ~= nil and getgenv().esp.BoxEnabled or false
 getgenv().esp.BoxCorners = getgenv().esp.BoxCorners ~= nil and getgenv().esp.BoxCorners or false
 getgenv().esp.BoxDynamic = getgenv().esp.BoxDynamic ~= nil and getgenv().esp.BoxDynamic or false
@@ -1472,7 +1472,7 @@ getgenv().esp.BoxStaticYFactor = getgenv().esp.BoxStaticYFactor or 100
 getgenv().esp.BoxColor = getgenv().esp.BoxColor or Color3.fromRGB(255, 255, 255)
 getgenv().esp.CornerColor = getgenv().esp.CornerColor or Color3.fromRGB(255, 0, 204)
 
--- UI configuration
+
 boxSection:Toggle{
     Name = "Enable Box",
     Default = getgenv().esp.BoxEnabled,
@@ -1539,7 +1539,7 @@ boxSection:Slider{
 
 
 
--- Function to render box for each player
+
 function player:RenderBox(data)
     if not self.boxDrawing then
         self.boxDrawing = Drawing.new("Square")
@@ -1551,7 +1551,7 @@ function player:RenderBox(data)
     if getgenv().esp.BoxDynamic then
         local characterPosition = data.character.HumanoidRootPart.Position
         local distance = (workspace.CurrentCamera.CFrame.Position - characterPosition).Magnitude
-        local sizeFactor = 1 / distance * 100 -- Adjust size based on character distance
+        local sizeFactor = 1 / distance * 100 
         sizeX = 30 * sizeFactor
         sizeY = 50 * sizeFactor
     else
@@ -1566,7 +1566,7 @@ function player:RenderBox(data)
     local bottomScreenPos, onScreenBottom = workspace.CurrentCamera:WorldToViewportPoint(feetPosition)
 
     if data.character == Players.LocalPlayer.Character or not (onScreenTop and onScreenBottom) then
-        -- Don't render a box for the local player or if the player is off-screen
+
         self.boxDrawing.Visible = false
         if self.cornerDrawings then
             for _, line in ipairs(self.cornerDrawings) do
@@ -1623,7 +1623,7 @@ function player:RenderBox(data)
     end
 end
 
--- Ensure all players are initialized with RenderBox function
+
 for _, playerInstance in ipairs(Players:GetPlayers()) do
     if not getgenv().players[playerInstance] then
         getgenv().esp["NewPlayer"](playerInstance)
@@ -1632,7 +1632,7 @@ for _, playerInstance in ipairs(Players:GetPlayers()) do
     end
 end
 
--- Update player box rendering in the RenderStepped loop
+
 RunService.RenderStepped:Connect(function()
     for _, playerObj in pairs(getgenv().players or {}) do
         if playerObj and type(playerObj.RenderBox) == "function" then
@@ -1644,17 +1644,17 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- General Info Settings Section
+
 local generalInfoSection = espTab:Section{
     Name = "General Info Settings",
     Side = "Right"
 }
 
--- Default values for health and armor settings
+
 getgenv().esp.HealthBarEnabled = getgenv().esp.HealthBarEnabled ~= nil and getgenv().esp.HealthBarEnabled or false
 getgenv().esp.ArmorBarEnabled = getgenv().esp.ArmorBarEnabled ~= nil and getgenv().esp.ArmorBarEnabled or false
 
--- UI configuration
+
 generalInfoSection:Toggle{
     Name = "Enable Health Bar",
     Default = getgenv().esp.HealthBarEnabled,
@@ -1671,35 +1671,35 @@ generalInfoSection:Toggle{
     end
 }
 
--- Function to render health and armor bars for each player
+
 function player:RenderGeneralInfo(data)
-    if not data or not data.character then return end -- Validate data
+    if not data or not data.character then return end 
 
     if data.character == Players.LocalPlayer.Character then
-        -- Don't render bars for the local player
+
         return
     end
 
-    -- Ensure bars are initialized
+
     if not self.healthBar then
         self.healthBar = Drawing.new("Square")
         self.healthBar.Filled = true
         self.healthBar.Thickness = 1
-        self.healthBar.Size = Vector2.new(10, 50) -- Fixed width and height
+        self.healthBar.Size = Vector2.new(10, 50) 
     end
 
     if not self.armorBar then
         self.armorBar = Drawing.new("Square")
         self.armorBar.Filled = true
         self.armorBar.Thickness = 1
-        self.armorBar.Size = Vector2.new(10, 50) -- Fixed width and height
+        self.armorBar.Size = Vector2.new(10, 50) 
     end
 
     local humanoid = data.character:FindFirstChildOfClass("Humanoid")
     local bodyEffects = data.character:FindFirstChild("BodyEffects")
     local armorValue = bodyEffects and bodyEffects:FindFirstChild("Armor") and bodyEffects.Armor.Value or 0
 
-    -- Check if humanoid and root part exist
+
     if not humanoid or not data.character:FindFirstChild("HumanoidRootPart") then
         self.healthBar.Visible = false
         self.armorBar.Visible = false
@@ -1709,26 +1709,26 @@ function player:RenderGeneralInfo(data)
     local headPosition = data.character:FindFirstChild("Head") and data.character.Head.Position or data.character.HumanoidRootPart.Position
     local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPosition)
 
-    -- Health bar rendering
+
     if getgenv().esp.HealthBarEnabled then
         self.healthBar.Color = Color3.fromRGB(0, 255, 0):lerp(Color3.fromRGB(255, 0, 0), 1 - (humanoid.Health / math.max(humanoid.MaxHealth, 1)))
-        self.healthBar.Position = Vector2.new(screenPos.X - 30, screenPos.Y + 15) -- Locked position with Y offset
+        self.healthBar.Position = Vector2.new(screenPos.X - 30, screenPos.Y + 15)
         self.healthBar.Visible = onScreen
     else
         self.healthBar.Visible = false
     end
 
-    -- Armor bar rendering
+
     if getgenv().esp.ArmorBarEnabled and armorValue > 0 then
         self.armorBar.Color = Color3.fromRGB(0, 100, 255):lerp(Color3.fromRGB(100, 100, 100), 1 - (armorValue / 100))
-        self.armorBar.Position = Vector2.new(screenPos.X + 30, screenPos.Y + 15) -- Locked position with Y offset
+        self.armorBar.Position = Vector2.new(screenPos.X + 30, screenPos.Y + 15) 
         self.armorBar.Visible = onScreen
     else
         self.armorBar.Visible = false
     end
 end
 
--- Universal validation function
+
 function validatePlayerData(playerObj)
     if not playerObj.instance or not playerObj.instance.Character or not playerObj.instance.Character:FindFirstChildOfClass("Humanoid") then
         return false
@@ -1736,7 +1736,7 @@ function validatePlayerData(playerObj)
     return true
 end
 
--- Ensure all players are initialized with RenderGeneralInfo function
+
 for _, playerInstance in ipairs(Players:GetPlayers()) do
     if not getgenv().players[playerInstance] then
         getgenv().esp["NewPlayer"](playerInstance)
@@ -1745,7 +1745,7 @@ for _, playerInstance in ipairs(Players:GetPlayers()) do
     end
 end
 
--- Update player rendering in the RenderStepped loop
+
 RunService.RenderStepped:Connect(function()
     for _, playerObj in pairs(getgenv().players or {}) do
         if playerObj and type(playerObj.RenderGeneralInfo) == "function" and validatePlayerData(playerObj) then
@@ -1766,19 +1766,19 @@ end)
 
 
 
--- Skeleton Settings Section
+
 local skeletonSection = espTab:Section{
     Name = "Skeleton Settings",
     Side = "Left"
 }
 
--- Default values for skeleton settings
+
 getgenv().esp.SkeletonEnabled = getgenv().esp.SkeletonEnabled ~= nil and getgenv().esp.SkeletonEnabled or false
 getgenv().esp.SkeletonColor = getgenv().esp.SkeletonColor or Color3.fromRGB(255, 255, 255)
 getgenv().esp.SkeletonMaxDistance = getgenv().esp.SkeletonMaxDistance or 1000
 getgenv().esp.SelfSkeleton = getgenv().esp.SelfSkeleton ~= nil and getgenv().esp.SelfSkeleton or false
 
--- Ensure skeleton connections are initialized
+
 local skeleton_connections = skeleton_connections or {
     {'UpperTorso', 'Head', Vector3.new(0, 0.4, 0), Vector3.new(0, -0.2, 0)},
     {'UpperTorso', 'LowerTorso', Vector3.new(0, 0.4, 0)},
@@ -1792,7 +1792,7 @@ local skeleton_connections = skeleton_connections or {
     {'RightUpperLeg', 'RightFoot'}
 }
 
--- UI configuration
+
 skeletonSection:Toggle{
     Name = "Enable Skeleton",
     Default = getgenv().esp.SkeletonEnabled,
@@ -1828,7 +1828,7 @@ skeletonSection:Slider{
     end
 }
 
--- Function to render skeleton for each player
+
 function player:RenderSkeleton(data)
     if not getgenv().esp.SkeletonEnabled then
         if self.skeletonLines then
@@ -1895,7 +1895,7 @@ function player:RenderSkeleton(data)
     end
 end
 
--- Ensure all players are initialized with RenderSkeleton function
+
 for _, playerInstance in ipairs(Players:GetPlayers()) do
     if not getgenv().players[playerInstance] then
         getgenv().esp["NewPlayer"](playerInstance)
@@ -1904,7 +1904,7 @@ for _, playerInstance in ipairs(Players:GetPlayers()) do
     end
 end
 
--- Update player skeleton rendering in the RenderStepped loop
+
 RunService.RenderStepped:Connect(function()
     for _, playerObj in pairs(getgenv().players or {}) do
         if playerObj and type(playerObj.RenderSkeleton) == "function" and validatePlayerData(playerObj) then
@@ -1919,7 +1919,7 @@ end)
 
 
 
--- Visibility Validation Script for All ESPs
+
 RunService.RenderStepped:Connect(function()
     for _, playerObj in pairs(getgenv().players or {}) do
         if playerObj and type(playerObj.RenderSkeleton) == "function" then
@@ -1930,7 +1930,7 @@ RunService.RenderStepped:Connect(function()
                 local distance = (workspace.CurrentCamera.CFrame.Position - headPart.Position).Magnitude
 
                 if onScreen and distance <= getgenv().esp.SkeletonMaxDistance then
-                    -- Render ESP if player is on screen and within max distance
+
                     if type(playerObj.RenderText) == "function" then
                         playerObj:RenderText(data)
                     end
@@ -1941,7 +1941,7 @@ RunService.RenderStepped:Connect(function()
                         playerObj:RenderSkeleton(data)
                     end
                 else
-                    -- Hide ESP elements if player is off-screen or out of distance
+
                     if playerObj.textDrawing then
                         playerObj.textDrawing.Visible = false
                     end
@@ -1960,7 +1960,7 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
             else
-                -- Hide ESP elements if data is invalid
+
                 if playerObj.textDrawing then
                     playerObj.textDrawing.Visible = false
                 end
@@ -1985,7 +1985,7 @@ end)
 
 
 
--- Visibility Validation Script for All ESPs with Enhanced Loading Checks
+
 RunService.RenderStepped:Connect(function()
     for _, playerObj in pairs(getgenv().players or {}) do
         if playerObj and type(playerObj.RenderSkeleton) == "function" then
@@ -1993,7 +1993,7 @@ RunService.RenderStepped:Connect(function()
             if success and data and data.character then
                 local humanoidRootPart = data.character:FindFirstChild("HumanoidRootPart")
                 if not humanoidRootPart then
-                    -- Attempt to wait and load HumanoidRootPart
+
                     task.spawn(function()
                         local timeout = 0
                         while not data.character:FindFirstChild("HumanoidRootPart") and timeout < 3 do
@@ -2009,7 +2009,7 @@ RunService.RenderStepped:Connect(function()
                     local distance = (workspace.CurrentCamera.CFrame.Position - headPart.Position).Magnitude
 
                     if onScreen and distance <= getgenv().esp.SkeletonMaxDistance then
-                        -- Render ESP if player is on screen and within max distance
+
                         if type(playerObj.RenderText) == "function" then
                             playerObj:RenderText(data)
                         end
@@ -2020,7 +2020,7 @@ RunService.RenderStepped:Connect(function()
                             playerObj:RenderSkeleton(data)
                         end
                     else
-                        -- Hide ESP elements if player is off-screen or out of distance
+
                         if playerObj.textDrawing then
                             playerObj.textDrawing.Visible = false
                         end
@@ -2040,7 +2040,7 @@ RunService.RenderStepped:Connect(function()
                     end
                 end
             else
-                -- Hide ESP elements if data is invalid or an error occurred
+
                 if playerObj.textDrawing then
                     playerObj.textDrawing.Visible = false
                 end
@@ -2066,7 +2066,7 @@ end)
 
 
 
--- Universal Visibility and Humanoid Validation Script for All ESPs
+
 RunService.RenderStepped:Connect(function()
     for _, playerObj in pairs(getgenv().players or {}) do
         if playerObj and type(playerObj.RenderSkeleton) == "function" then
@@ -2076,9 +2076,9 @@ RunService.RenderStepped:Connect(function()
                 local humanoid = character:FindFirstChildOfClass("Humanoid")
                 local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
 
-                -- Validate Humanoid and HumanoidRootPart
+
                 if not humanoid or not humanoidRootPart then
-                    -- Attempt to wait and load Humanoid and HumanoidRootPart
+
                     task.spawn(function()
                         local timeout = 0
                         while (not character:FindFirstChildOfClass("Humanoid") or not character:FindFirstChild("HumanoidRootPart")) and timeout < 3 do
@@ -2086,7 +2086,7 @@ RunService.RenderStepped:Connect(function()
                             timeout = timeout + 0.1
                         end
 
-                        -- Reset visibility if components are still missing
+
                         if not character:FindFirstChildOfClass("Humanoid") or not character:FindFirstChild("HumanoidRootPart") then
                             if playerObj.textDrawing then
                                 playerObj.textDrawing.Visible = false
