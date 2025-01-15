@@ -418,12 +418,37 @@ local function VnlyRestoreBloodEffects(char)
     end
 end
 
+-- Function to check if a player is knocked out
 local function isKnockedOut(player)
     local character = player.Character
     if not character then return true end
+
     local humanoid = character:FindFirstChildOfClass("Humanoid")
-    return not humanoid or humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead
+    if not humanoid then return true end
+
+    -- Check for custom knock-out status (specific to Da Hood-style games)
+    local bodyEffects = character:FindFirstChild("BodyEffects")
+    if bodyEffects then
+        local koStatus = bodyEffects:FindFirstChild("K.O")
+        if koStatus and koStatus.Value then
+            return true -- Player is knocked out if K.O value is true
+        end
+    end
+
+    -- Check for zero health or specific states indicating knock-out or death
+    return humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead or humanoid:GetState() == Enum.HumanoidStateType.Physics or humanoid.Sit
 end
+
+-- Usage example for detecting knock-outs during runtime
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        while task.wait(0.1) do
+            if isKnockedOut(player) then
+            end
+        end
+    end)
+end)
+
 
 local function getSizeConfig(toolName, gunDetection)
     if gunDetection and toolName then
