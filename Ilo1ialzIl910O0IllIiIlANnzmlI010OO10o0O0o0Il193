@@ -334,6 +334,18 @@ coroutine.wrap(applyGunProperties)()
 
 --misc
 
+
+
+
+
+
+
+
+
+
+
+
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -369,7 +381,7 @@ local GunTypes = {
     ['[SilencerAR]'] = 'Other'
 }
 
-local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320} 
+local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320}
 
 local function getClosestPlayerToCursor()
     local mouse = LocalPlayer:GetMouse()
@@ -418,26 +430,43 @@ local function VnlyRestoreBloodEffects(char)
     end
 end
 
+local function deleteBloodParticles(character)
+    for _, d in pairs(character:GetDescendants()) do
+        if d:IsA("ParticleEmitter") and d.Name == "BloodParticle" then
+            d:Destroy() -- Completely delete the blood particle from the game
+        end
+    end
+end
 
+-- Function to safely access nested properties
+local function safeGet(instance, className)
+    if instance and instance:IsA("Model") then
+        return instance:FindFirstChildOfClass(className)
+    end
+    return nil
+end
+
+-- Universal "isKnockedOut" function using "safeGet"
 local function isKnockedOut(player)
     local character = player.Character
     if not character then return true end
 
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local humanoid = safeGet(character, "Humanoid")
     if not humanoid then return true end
-
 
     local bodyEffects = character:FindFirstChild("BodyEffects")
     if bodyEffects then
         local koStatus = bodyEffects:FindFirstChild("K.O")
         if koStatus and koStatus.Value then
-            return true 
+            return true
         end
     end
 
-
-    return humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead or humanoid:GetState() == Enum.HumanoidStateType.Physics or humanoid.Sit
+    return humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead or humanoid.Sit
 end
+
+-- Globalizing the function to reuse across multiple scripts
+_G.isKnockedOut = isKnockedOut
 
 
 Players.PlayerAdded:Connect(function(player)
@@ -449,7 +478,6 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
-
 local function getSizeConfig(toolName, gunDetection)
     if gunDetection and toolName then
         local gunType = GunTypes[toolName] or "Other"
@@ -459,7 +487,7 @@ local function getSizeConfig(toolName, gunDetection)
     end
 end
 
-local function VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection)
+local function VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection, removeBlood)
     local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local sizeConfig = getSizeConfig(equippedTool and equippedTool.Name, gunDetection)
 
@@ -477,6 +505,10 @@ local function VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVis
                 local h = c.HumanoidRootPart
 
                 if Toggle then
+                    if removeBlood then
+                        deleteBloodParticles(c)
+                    end
+
                     if knockCheck and isKnockedOut(p) then
                         h.Size = Vector3.new(2, 2, 1)
                         h.Transparency = 1
@@ -512,7 +544,6 @@ local function VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVis
     end
 end
 
-
 local generalSection = hitboxTab:Section{
     Name = "HBE",
     Side = "Left"
@@ -544,7 +575,7 @@ local knockCheck = false
 local autoTarget = false
 local boxVisual = false
 local gunDetection = false
-
+local removeBlood = false -- Default for remove blood effects
 
 generalSection:Keybind{
     Name = "Toggle Keybind",
@@ -553,7 +584,6 @@ generalSection:Keybind{
         toggleKey = key
     end
 }
-
 
 toggleSection:Toggle{
     Name = "Everyone Mode",
@@ -588,13 +618,20 @@ toggleSection:Toggle{
 }
 
 toggleSection:Toggle{
+    Name = "Remove Blood Effects",
+    Default = removeBlood,
+    Callback = function(enabled)
+        removeBlood = enabled
+    end
+}
+
+toggleSection:Toggle{
     Name = "Enable Gun Detection",
     Default = gunDetection,
     Callback = function(enabled)
         gunDetection = enabled
     end
 }
-
 
 local gunSizeSliders = {
     Shotgun = {SizeX = 4, SizeY = 3, SizeZ = 6},
@@ -642,16 +679,37 @@ UserInputService.InputBegan:Connect(function(i, p)
     if p then return end
     if i.KeyCode == toggleKey then
         Toggle = not Toggle
-        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection)
+        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection, removeBlood)
     end
 end)
 
 RunService.Heartbeat:Connect(function()
     if Toggle and (os.clock() - lastUpdateTime >= 0.1) then
         lastUpdateTime = os.clock()
-        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection)
+        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection, removeBlood)
     end
 end)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ----------------- hbe page
 
 
@@ -2113,5 +2171,4 @@ end)
 
 
 -- esp
-
 
