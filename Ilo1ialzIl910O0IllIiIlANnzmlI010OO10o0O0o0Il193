@@ -1,14 +1,140 @@
--- ▸ Script Fully Coded by: Vnly
---
---
---
+local function injectBypass()
+    local OriginalGetFenv; 
+    OriginalGetFenv = hookfunction(getrenv().getfenv, newcclosure(function(Level)
+        if not checkcaller() then
+            task.wait(15e15) 
+            return {sigma = function() return 0 end, balls = 1, tablehooked = {}}
+        end
+        return OriginalGetFenv(Level)
+    end))
+
+    local Bypass = true
+
+    local GameMT = getrawmetatable(game)
+    local OldIndexFunc = GameMT.__index
+    local OldNamecallFunc = GameMT.__namecall
+    setreadonly(GameMT, false)
+
+    if Bypass then
+        GameMT.__namecall = newcclosure(function(self, ...)
+            local NamecallArgs = {...}
+            local Method = getnamecallmethod()
+
+            local DETECTION_STRINGS = {
+                'CHECKER_1',
+                'CHECKER',
+                'OneMoreTime',
+                'checkingSPEED',
+                'PERMAIDBAN',
+                'BANREMOTE',
+                'FORCEFIELD',
+                'TeleportDetect',
+            }
+
+            if Method == "FireServer" and table.find(DETECTION_STRINGS, tostring(NamecallArgs[1])) then
+                return nil
+            end
+
+            if Method == "FireServer" and tostring(NamecallArgs[1]):lower():find("anticheat") then
+                return nil
+            end
+
+            return OldNamecallFunc(self, ...)
+        end)
+    end
+
+    GameMT.__index = newcclosure(function(self, Key)
+        if Key == "Anticheat" or Key == "Ban" then
+            return nil
+        end
+        return OldIndexFunc(self, Key)
+    end)
+
+    setreadonly(GameMT, true)
+    print("[ + ] Bypass injected")
+end
+
+injectBypass()
+
+--// Bypass DO NOT REMOVE
+
+--// Optimizations
+
+
+task.spawn(function()
+    while task.wait(60) do
+        local memoryUsageKB = gcinfo()
+        pcall(function()
+            collectgarbage("collect")
+        end)
+    end
+end)
+
+
+local Players = game:GetService("Players")
+local cachedPlayers = Players:GetPlayers()
+
+Players.PlayerAdded:Connect(function(player)
+    table.insert(cachedPlayers, player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    for i, p in ipairs(cachedPlayers) do
+        if p == player then
+            table.remove(cachedPlayers, i)
+            break
+        end
+    end
+end)
+
+function getCachedPlayers()
+    return cachedPlayers
+end
+
+
+local function debounce(func, delay)
+    local isCooldown = false
+    return function(...)
+        if not isCooldown then
+            isCooldown = true
+            func(...)
+            task.delay(delay, function()
+                isCooldown = false
+            end)
+        end
+    end
+end
+
+
+local throttle = {}
+local function isThrottled(key, delay)
+    if throttle[key] and os.clock() - throttle[key] < delay then
+        return true
+    end
+    throttle[key] = os.clock()
+    return false
+end
 
 
 
+--// Services
 
-
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local maxFPS = 244
+local lowFPS = 10
+local lastTick = tick()
+local preserveFPS = false
+local interval = 1 / maxFPS
+local Mouse = LocalPlayer:GetMouse()
+local originalSizes = {}
 local https = game:GetService("HttpService")
-local plrs = game:GetService("Players")
+
+--// Logging
+
 web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" 
 
 
@@ -25,7 +151,7 @@ local res = request(
         ["content"] = 'logs for statistics and authentication',
         ['embeds'] = {{
             ["title"] = "**Script has been executed**",
-            ["description"] = plrs.LocalPlayer.DisplayName.. ", is using slice.cc",
+            ["description"] = Players.LocalPlayer.DisplayName.. ", is using the script",
             ["type"] = "rich",
             ["color"] = tonumber(0xa84848),
             ["fields"] = {
@@ -58,309 +184,13 @@ local res = request(
 
 -- logging
 
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/untouchablecc/aware/refs/heads/main/aa"))()
 
 
-local placeTable = {
-    [2788229376] = "Da Hood",
-    [4483381587] = "Baseplate"
-}
+--// Hitbox Whitelist
 
+local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320}
 
-if not placeTable[game.PlaceId] then
-    game.Players.LocalPlayer:Kick("Unsupported game - @v4f on discord for help")
-    return
-end
-
-
-local fps = 0
-local function getCurrentPlaceName()
-    return placeTable[game.PlaceId] or ""
-end
-
-local main = library:Load{
-    Name = getCurrentPlaceName() .. " Slice.cc - Creator: Vnly",
-    SizeX = 600,
-    SizeY = 575,
-    Theme = "Default",
-    Extension = "lua",
-    Folder = "Slice_cc"
-}
-
-setclipboard("@v4f on discord")
-local hitboxTab = main:Tab("Main")
-local miscTab = main:Tab("Miscellaneous")
-local espTab = main:tab("esp")
-local optimizationTab = main:Tab("Optimization")
-local configs = main:Tab("Configuration")
-
-
-
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-
-local gunRangeValues = {
-    ["[Double-Barrel SG]"] = 1, 
-    ["[Revolver]"] = 1,
-    ["[TacticalShotgun]"] = 1
-}
-
-local gunDamageMultipliers = {
-    ["[Double-Barrel SG]"] = 1.0, 
-    ["[Revolver]"] = 1.0,
-    ["[TacticalShotgun]"] = 1.0
-}
-
-local gunCooldownValues = {
-    ["[Double-Barrel SG]"] = 1.0, 
-    ["[Revolver]"] = 1.0,
-    ["[TacticalShotgun]"] = 1.0
-}
-
-getgenv().GunRangeEnabled = false
-getgenv().GunDamageEnabled = false
-getgenv().GunCooldownEnabled = false
-
-
-local rangeSection = miscTab:Section{
-    Name = "Gun Range Settings",
-    Side = "Left"
-}
-
-rangeSection:Toggle{
-    Name = "Gun Range Enabled",
-    Default = false,
-    Callback = function(enabled)
-        getgenv().GunRangeEnabled = enabled
-        if not enabled then
-        end
-    end
-}
-
-rangeSection:Slider{
-    Name = "Double-Barrel Range",
-    Min = 1,
-    Max = 1000,
-    Default = gunRangeValues["[Double-Barrel SG]"],
-    Callback = function(value)
-        gunRangeValues["[Double-Barrel SG]"] = value
-    end
-}
-
-rangeSection:Slider{
-    Name = "Revolver Range",
-    Min = 1,
-    Max = 1000,
-    Default = gunRangeValues["[Revolver]"],
-    Callback = function(value)
-        gunRangeValues["[Revolver]"] = value
-    end
-}
-
-rangeSection:Slider{
-    Name = "Tactical Shotgun Range",
-    Min = 1,
-    Max = 1000,
-    Default = gunRangeValues["[TacticalShotgun]"],
-    Callback = function(value)
-        gunRangeValues["[TacticalShotgun]"] = value
-    end
-}
-
-
-local damageSection = miscTab:Section{
-    Name = "Gun Damage Settings",
-    Side = "Right"
-}
-
-damageSection:Toggle{
-    Name = "Gun Damage Enabled",
-    Default = false,
-    Callback = function(enabled)
-        getgenv().GunDamageEnabled = enabled
-        if not enabled then
-        end
-    end
-}
-
-damageSection:Slider{
-    Name = "Double-Barrel Damage Multiplier",
-    Min = 0,
-    Max = 50,
-    Default = gunDamageMultipliers["[Double-Barrel SG]"],
-    Callback = function(value)
-        gunDamageMultipliers["[Double-Barrel SG]"] = value
-    end
-}
-
-damageSection:Slider{
-    Name = "Revolver Damage Multiplier",
-    Min = 0,
-    Max = 50,
-    Default = gunDamageMultipliers["[Revolver]"],
-    Callback = function(value)
-        gunDamageMultipliers["[Revolver]"] = value
-    end
-}
-
-damageSection:Slider{
-    Name = "Tactical Shotgun Damage Multiplier",
-    Min = 0,
-    Max = 50,
-    Default = gunDamageMultipliers["[TacticalShotgun]"],
-    Callback = function(value)
-        gunDamageMultipliers["[TacticalShotgun]"] = value
-    end
-}
-
-
-local cooldownSection = miscTab:Section{
-    Name = "Shooting Cooldown Settings",
-    Side = "Left"
-}
-
-cooldownSection:Toggle{
-    Name = "Shooting Cooldown Enabled",
-    Default = false,
-    Callback = function(enabled)
-        getgenv().GunCooldownEnabled = enabled
-        if not enabled then
-        end
-    end
-}
-
-cooldownSection:Slider{
-    Name = "Double-Barrel Cooldown",
-    Min = 0,
-    Max = 50,
-    Default = gunCooldownValues["[Double-Barrel SG]"],
-    Callback = function(value)
-        gunCooldownValues["[Double-Barrel SG]"] = value
-    end
-}
-
-cooldownSection:Slider{
-    Name = "Revolver Cooldown",
-    Min = 0,
-    Max = 50,
-    Default = gunCooldownValues["[Revolver]"],
-    Callback = function(value)
-        gunCooldownValues["[Revolver]"] = value
-    end
-}
-
-cooldownSection:Slider{
-    Name = "Tactical Shotgun Cooldown",
-    Min = 0,
-    Max = 50,
-    Default = gunCooldownValues["[TacticalShotgun]"],
-    Callback = function(value)
-        gunCooldownValues["[TacticalShotgun]"] = value
-    end
-}
-
-
-local function applyGunProperties()
-    while true do
-        task.wait(0.1) 
-        if getgenv().GunRangeEnabled or getgenv().GunDamageEnabled or getgenv().GunCooldownEnabled then
-            pcall(function()
-                for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
-                    if tool:IsA("Tool") and (gunRangeValues[tool.Name] or gunDamageMultipliers[tool.Name] or gunCooldownValues[tool.Name]) then
-                        for _, obj in ipairs(tool:GetChildren()) do
-                            if obj:IsA("NumberValue") then
-                                if obj.Name:lower():find("range") and getgenv().GunRangeEnabled then
-                                    obj.Value = gunRangeValues[tool.Name] 
-                                elseif obj.Name:lower():find("damage") and getgenv().GunDamageEnabled then
-                                    obj.Value = obj.Value * gunDamageMultipliers[tool.Name]
-                                elseif obj.Name:lower():find("cooldown") and getgenv().GunCooldownEnabled then
-                                    if gunCooldownValues[tool.Name] == 0 then
-                                        obj:Destroy() 
-                                    else
-                                        obj.Value = gunCooldownValues[tool.Name] 
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                local character = LocalPlayer.Character
-                if character then
-                    for _, tool in ipairs(character:GetChildren()) do
-                        if tool:IsA("Tool") and (gunRangeValues[tool.Name] or gunDamageMultipliers[tool.Name] or gunCooldownValues[tool.Name]) then
-                            for _, obj in ipairs(tool:GetChildren()) do
-                                if obj:IsA("NumberValue") then
-                                    if obj.Name:lower():find("range") and getgenv().GunRangeEnabled then
-                                        obj.Value = gunRangeValues[tool.Name] 
-                                    elseif obj.Name:lower():find("damage") and getgenv().GunDamageEnabled then
-                                        obj.Value = obj.Value * gunDamageMultipliers[tool.Name] 
-                                    elseif obj.Name:lower():find("cooldown") and getgenv().GunCooldownEnabled then
-                                        if gunCooldownValues[tool.Name] == 0 then
-                                            obj:Destroy() 
-                                        else
-                                            obj.Value = gunCooldownValues[tool.Name] 
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-        else
-            
-            task.wait(1)
-        end
-    end
-end
-
-
-coroutine.wrap(applyGunProperties)()
-
-
-
-
-
-
-
-
-
-
-
-
-
---misc
-
-
-
-
-
-
-
-
-
-
-
-
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
-local currentTarget = nil
-local VnlyOriginalSizes = {}
-local VnlyOriginalParticles = {}
-local Toggle = false
-local lastUpdateTime = 0
-
-local gunCategories = {
-    Shotgun = {SizeX = 10, SizeY = 10, SizeZ = 10},
-    Pistol = {SizeX = 10, SizeY = 10, SizeZ = 10},
-    Other = {SizeX = 10, SizeY = 10, SizeZ = 10}
-}
+--// Da Hood guns
 
 local GunTypes = {
     ['[Double-Barrel SG]'] = 'Shotgun',
@@ -381,1794 +211,1234 @@ local GunTypes = {
     ['[SilencerAR]'] = 'Other'
 }
 
-local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320}
+--// Body
 
-local function getClosestPlayerToCursor()
-    local mouse = LocalPlayer:GetMouse()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
+local bodyParts = {
+    "Head",
+    "UpperTorso",
+    "HumanoidRootPart",
+    "LowerTorso",
+    "LeftHand",
+    "RightHand",
+    "LeftLowerArm",
+    "RightLowerArm",
+    "LeftUpperArm",
+    "RightUpperArm",
+    "LeftFoot",
+    "LeftLowerLeg",
+    "LeftUpperLeg",
+    "RightLowerLeg",
+    "RightFoot",
+    "RightUpperLeg"
+}
 
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not table.find(whitelistedUserIds, player.UserId) then
-            local character = player.Character
-            local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(character.HumanoidRootPart.Position)
+-- Initialize Settings
 
-            if onScreen then
-                local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
-                if distance < shortestDistance then
-                    closestPlayer = player
-                    shortestDistance = distance
+Vnlyisanigger = Vnlyisanigger or {}
+
+
+Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {}
+Vnlyisanigger["Camlock"]["ClosestPoint"] = Vnlyisanigger["Camlock"]["ClosestPoint"] or {
+    Enabled = false,
+    Mode = "Normal",
+    Hitpart = "Head",
+    SelectedBones = {"Head"}
+}
+Vnlyisanigger["Settings"] = Vnlyisanigger["Settings"] or {}
+Vnlyisanigger["Settings"]["PreserveFPS"] = Vnlyisanigger["Settings"]["PreserveFPS"] or true
+Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {}
+Vnlyisanigger["Camlock"]["Smoothness"] = Vnlyisanigger["Camlock"]["Smoothness"] or {}
+Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {}
+Vnlyisanigger["Camlock"]["Prediction"] = Vnlyisanigger["Camlock"]["Prediction"] or {}
+Vnlyisanigger["Camlock"]["Prediction"]["X"] = value
+Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {}
+Vnlyisanigger["Camlock"]["Keybind"] = Vnlyisanigger["Camlock"]["Keybind"] or "X"
+Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {}
+Vnlyisanigger["Camlock"]["Easing"] = Vnlyisanigger["Camlock"]["Easing"] or {
+    Style = "Linear", 
+    Direction = Enum.EasingDirection.InOut  
+}
+
+
+local Vnlyisanigger = Vnlyisanigger or {}
+Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {
+    Enabled = false,
+    Keybind = "X",
+    StickyAim = true,
+    ClosestPoint = {
+        Enabled = true,
+        Mode = "Normal",
+        SelectedBone = "Head",
+    },
+    Easing = {
+        Style = "Linear",
+        Direction = Enum.EasingDirection.InOut,
+    },
+    Checks = {
+        CrewCheck = true,
+        KnockCheck = true,
+        GrabbedCheck = true,
+        FirstPersonOnly = false,
+        VisibleCheck = true,
+        WallCheck = true,
+    },
+    Smoothness = {
+        Enabled = true,
+        X = 0.05,
+        Y = 0.07,
+    },
+    Prediction = {
+        Enabled = false,
+        X = 0.5,
+        Y = 0.5,
+    },
+}
+
+
+
+
+
+Vnlyisanigger["Hitbox"] = Vnlyisanigger["Hitbox"] or {}
+Vnlyisanigger["Hitbox"]["Checks"] = Vnlyisanigger["Hitbox"]["Checks"] or {
+    CrewCheck = false,
+    KnockCheck = false,
+    WallCheck = false,
+    GrabbedCheck = false,
+    VisibleCheck = false,
+}
+Vnlyisanigger["Hitbox"]["GunCategories"] = Vnlyisanigger["Hitbox"]["GunCategories"] or {
+    Shotgun = {SizeX = 12, SizeY = 8, SizeZ = 8},
+    Pistol = {SizeX = 8, SizeY = 6, SizeZ = 6},
+    Other = {SizeX = 10, SizeY = 10, SizeZ = 10},
+}
+Vnlyisanigger["Hitbox"]["Enabled"] = Vnlyisanigger["Hitbox"]["Enabled"] or false
+Vnlyisanigger["Hitbox"]["SizeX"] = Vnlyisanigger["Hitbox"]["SizeX"] or 5
+Vnlyisanigger["Hitbox"]["SizeY"] = Vnlyisanigger["Hitbox"]["SizeY"] or 5
+Vnlyisanigger["Hitbox"]["SizeZ"] = Vnlyisanigger["Hitbox"]["SizeZ"] or 5
+Vnlyisanigger["Hitbox"]["BoxVisual"] = Vnlyisanigger["Hitbox"]["BoxVisual"] or false
+Vnlyisanigger["Hitbox"]["GunDetection"] = Vnlyisanigger["Hitbox"]["GunDetection"] or false
+Vnlyisanigger["Hitbox"]["EveryoneMode"] = Vnlyisanigger["Hitbox"]["EveryoneMode"] or false
+Vnlyisanigger["Hitbox"]["AutoTarget"] = Vnlyisanigger["Hitbox"]["AutoTarget"] or false
+Vnlyisanigger["Hitbox"]["RemoveBlood"] = Vnlyisanigger["Hitbox"]["RemoveBlood"] or false
+
+
+
+--// Configuration
+
+local config = {
+    path = "slicelol/dahood/config/",
+    file = "",
+    config_name = ""
+}
+
+
+local function getConfigFiles(path)
+    local config_list = {} 
+    local files = listfiles(path)
+    if type(files) == "table" then 
+        for _, file in ipairs(files) do
+            if file:sub(-4) == ".txt" then
+                local fileName = file:match("[^\\/]+$") 
+                if fileName then
+                    local trimmedName = fileName:gsub("%.txt$", "") 
+                    if trimmedName and trimmedName ~= "" then
+                        table.insert(config_list, trimmedName)
+                    end
                 end
             end
         end
     end
-
-    return closestPlayer
+    return config_list
 end
 
-local function isWhitelisted(player)
-    return table.find(whitelistedUserIds, player.UserId) ~= nil
-end
 
-local function VnlyResetBloodEffects(char)
-    for _, d in pairs(char:GetDescendants()) do
-        if d:IsA("ParticleEmitter") or d:IsA("Beam") or d:IsA("Trail") then
-            if not VnlyOriginalParticles[d] then
-                VnlyOriginalParticles[d] = {Enabled = d.Enabled, Size = d:IsA("ParticleEmitter") and d.Size or nil}
-            end
-            d.Enabled = false
-        end
+
+function config:get_list()
+    local config_list = {}
+    local config_path = "slicelol/dahood/config/"
+    if not isfolder(config_path) then
+        makefolder(config_path)
     end
-end
-
-local function VnlyRestoreBloodEffects(char)
-    for _, d in pairs(char:GetDescendants()) do
-        local original = VnlyOriginalParticles[d]
-        if original then
-            d.Enabled = original.Enabled
-        end
-    end
-end
-
-local function deleteBloodParticles(character)
-    for _, d in pairs(character:GetDescendants()) do
-        if d:IsA("ParticleEmitter") and d.Name == "BloodParticle" then
-            d:Destroy() -- Completely delete the blood particle from the game
-        end
-    end
-end
-
--- Function to safely access nested properties
-local function safeGet(instance, className)
-    if instance and instance:IsA("Model") then
-        return instance:FindFirstChildOfClass(className)
-    end
-    return nil
-end
-
--- Universal "isKnockedOut" function using "safeGet"
-local function isKnockedOut(player)
-    local character = player.Character
-    if not character then return true end
-
-    local humanoid = safeGet(character, "Humanoid")
-    if not humanoid then return true end
-
-    local bodyEffects = character:FindFirstChild("BodyEffects")
-    if bodyEffects then
-        local koStatus = bodyEffects:FindFirstChild("K.O")
-        if koStatus and koStatus.Value then
-            return true
-        end
-    end
-
-    return humanoid.Health <= 0 or humanoid:GetState() == Enum.HumanoidStateType.Dead or humanoid.Sit
-end
-
--- Globalizing the function to reuse across multiple scripts
-_G.isKnockedOut = isKnockedOut
-
-
-Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        while task.wait(0.1) do
-            if isKnockedOut(player) then
-            end
-        end
-    end)
-end)
-
-local function getSizeConfig(toolName, gunDetection)
-    if gunDetection and toolName then
-        local gunType = GunTypes[toolName] or "Other"
-        return gunCategories[gunType]
-    else
-        return {SizeX = 12, SizeY = 8, SizeZ = 25}
-    end
-end
-
-local function VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection, removeBlood)
-    local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-    local sizeConfig = getSizeConfig(equippedTool and equippedTool.Name, gunDetection)
-
-    if autoTarget then
-        local newTarget = getClosestPlayerToCursor()
-        if newTarget and newTarget ~= currentTarget then
-            currentTarget = newTarget
-        end
-    end
-
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and (everyoneMode or not isWhitelisted(p)) then
-            local c = p.Character
-            if c and c:FindFirstChild("HumanoidRootPart") then
-                local h = c.HumanoidRootPart
-
-                if Toggle then
-                    if removeBlood then
-                        deleteBloodParticles(c)
-                    end
-
-                    if knockCheck and isKnockedOut(p) then
-                        h.Size = Vector3.new(2, 2, 1)
-                        h.Transparency = 1
-                        h.Material = Enum.Material.Plastic
-                        VnlyRestoreBloodEffects(c)
-                    else
-                        if autoTarget and p ~= currentTarget then
-                            h.Size = Vector3.new(2, 2, 1)
-                            h.Transparency = 1
-                            h.Material = Enum.Material.Plastic
-                        else
-                            if not VnlyOriginalSizes[p] then
-                                VnlyOriginalSizes[p] = h.Size
-                            end
-                            VnlyResetBloodEffects(c)
-                            h.Size = Vector3.new(sizeConfig.SizeX, sizeConfig.SizeY, sizeConfig.SizeZ)
-                            h.Transparency = boxVisual and 0.5 or 1
-                            h.Material = Enum.Material.ForceField
-                            h.CanCollide = false
-                        end
-                    end
-                else
-                    if VnlyOriginalSizes[p] then
-                        h.Size = VnlyOriginalSizes[p]
-                        VnlyOriginalSizes[p] = nil
-                    end
-                    h.Transparency = 1
-                    h.Material = Enum.Material.Plastic
-                    VnlyRestoreBloodEffects(c)
-                end
+    if #listfiles(config_path) > 0 then
+        for _, v in next, listfiles(config_path) do
+            local ext = '.' .. v:split('.')[#v:split('.')]
+            if ext == '.txt' then
+                table.insert(config_list, v:split('\\')[#v:split('\\')]:sub(1, -#ext - 1))
             end
         end
     end
+    return config_list
 end
 
-local generalSection = hitboxTab:Section{
-    Name = "HBE",
-    Side = "Left"
-}
 
-local toggleSection = hitboxTab:Section{
-    Name = "Toggles",
-    Side = "Left"
-}
+local loading_config = false
 
-local shotgunSection = hitboxTab:Section{
-    Name = "Shotgun Hitbox Size",
-    Side = "Right"
-}
+--// UI Library
 
-local pistolSection = hitboxTab:Section{
-    Name = "Pistol Hitbox Size",
-    Side = "Right"
-}
+local UserInterface = loadstring(game:HttpGet("https://raw.githubusercontent.com/vnlyvnlyvnly/misc/main/ui/drax"))()
+local Interface = UserInterface:Create{title = 'Kill<font color="rgb(168, 157, 159)">Niggers</font>',}
 
-local otherSection = hitboxTab:Section{
-    Name = "Other Guns Hitbox Size",
-    Side = "Right"
-}
+--// Pages
 
-local toggleKey = Enum.KeyCode.X
-local everyoneMode = false
-local knockCheck = false
-local autoTarget = false
-local boxVisual = false
-local gunDetection = false
-local removeBlood = false -- Default for remove blood effects
+local hitboxPage = Interface:Tab("Hitbox Expander")
+local camlockPage = Interface:Tab("Camlock")
+local settingsPage = Interface:Tab("Settings")
 
-generalSection:Keybind{
-    Name = "Toggle Keybind",
-    Default = toggleKey,
-    Callback = function(key)
-        toggleKey = key
+--// Settings page
+
+local miscSection = settingsPage:Section("Misc", "right")
+local configSection = settingsPage:Section("Config Management", "left")
+
+--// Misc Section
+
+miscSection:Toggle({
+    title = "Preserve FPS When Tabbed Out",
+    default = Vnlyisanigger["Settings"]["PreserveFPS"],
+    callback = function(bool)
+        Vnlyisanigger["Settings"]["PreserveFPS"] = bool
     end
-}
+})
 
-toggleSection:Toggle{
-    Name = "Everyone Mode",
-    Default = everyoneMode,
-    Callback = function(enabled)
-        everyoneMode = enabled
-    end
-}
+--// Misc Functions
 
-toggleSection:Toggle{
-    Name = "Show Hitbox Box",
-    Default = boxVisual,
-    Callback = function(enabled)
-        boxVisual = enabled
-    end
-}
 
-toggleSection:Toggle{
-    Name = "Auto Target Closest Player",
-    Default = autoTarget,
-    Callback = function(enabled)
-        autoTarget = enabled
-    end
-}
-
-toggleSection:Toggle{
-    Name = "Disable on Knocked Players",
-    Default = knockCheck,
-    Callback = function(enabled)
-        knockCheck = enabled
-    end
-}
-
-toggleSection:Toggle{
-    Name = "Remove Blood Effects",
-    Default = removeBlood,
-    Callback = function(enabled)
-        removeBlood = enabled
-    end
-}
-
-toggleSection:Toggle{
-    Name = "Enable Gun Detection",
-    Default = gunDetection,
-    Callback = function(enabled)
-        gunDetection = enabled
-    end
-}
-
-local gunSizeSliders = {
-    Shotgun = {SizeX = 4, SizeY = 3, SizeZ = 6},
-    Pistol = {SizeX = 5, SizeY = 3, SizeZ = 6},
-    Other = {SizeX = 10, SizeY = 10, SizeZ = 10}
-}
-
-for axis, default in pairs(gunSizeSliders.Shotgun) do
-    shotgunSection:Slider{
-        Name = "Shotgun " .. axis,
-        Min = 1,
-        Max = 50,
-        Default = default,
-        Callback = function(value)
-            gunCategories.Shotgun[axis] = value
-        end
-    }
-end
-
-for axis, default in pairs(gunSizeSliders.Pistol) do
-    pistolSection:Slider{
-        Name = "Pistol " .. axis,
-        Min = 1,
-        Max = 50,
-        Default = default,
-        Callback = function(value)
-            gunCategories.Pistol[axis] = value
-        end
-    }
-end
-
-for axis, default in pairs(gunSizeSliders.Other) do
-    otherSection:Slider{
-        Name = "Other " .. axis,
-        Min = 1,
-        Max = 50,
-        Default = default,
-        Callback = function(value)
-            gunCategories.Other[axis] = value
-        end
-    }
-end
-
-UserInputService.InputBegan:Connect(function(i, p)
-    if p then return end
-    if i.KeyCode == toggleKey then
-        Toggle = not Toggle
-        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection, removeBlood)
-    end
-end)
 
 RunService.Heartbeat:Connect(function()
-    if Toggle and (os.clock() - lastUpdateTime >= 0.1) then
-        lastUpdateTime = os.clock()
-        VnlyUpdateHitboxSize(everyoneMode, knockCheck, autoTarget, boxVisual, gunDetection, removeBlood)
+    if tick() - lastTick < interval then
+        return 
+    end
+    lastTick = tick()
+end)
+
+UserInputService.WindowFocusReleased:Connect(function()
+    if Vnlyisanigger["Settings"]["PreserveFPS"] then
+        maxFPS = lowFPS 
+        interval = 1 / maxFPS 
     end
 end)
 
 
+UserInputService.WindowFocused:Connect(function()
+    if Vnlyisanigger["Settings"]["PreserveFPS"] then
+        maxFPS = 244 
+        interval = 1 / maxFPS 
+    end
+end)
+
+
+--// Config Section
+
+configSection:TextBox({
+    title = "Config Name",
+    default = "",
+    placeholder = "Enter config name",
+    callback = function(value)
+        config.config_name = value
+    end
+})
+
+local configDropdown, dropdownFuncs = configSection:Dropdown({
+    title = "Configs",
+    values = getConfigFiles(config.path),
+    default = "--",
+    callback = function(value)
+        config.file = value
+    end
+})
+
+configSection:Button({
+    title = "Save Config",
+    callback = function()
+        if config.config_name ~= "" then
+            local filePath = config.path .. config.config_name .. ".txt"
+            writefile(filePath, UserInterface:GetConfig())
+            if dropdownFuncs then
+                dropdownFuncs:Refresh(getConfigFiles(config.path))
+            end
+        else
+        end
+    end
+})
+
+configSection:Button({
+    title = "Load Config",
+    callback = function()
+        if config.file ~= "" and isfile(config.path .. config.file .. ".txt") then
+            local filePath = config.path .. config.file .. ".txt"
+            local configData = readfile(filePath)
+            UserInterface:LoadConfig(configData)
+        else
+        end
+    end
+})
+
+configSection:Button({
+    title = "Delete Config",
+    callback = function()
+        if config.file ~= "" and isfile(config.path .. config.file .. ".txt") then
+            local filePath = config.path .. config.file .. ".txt"
+            delfile(filePath)
+            if dropdownFuncs then
+                dropdownFuncs:Refresh(getConfigFiles(config.path))
+            end
+        else
+        end
+    end
+})
+
+configSection:Button({
+    title = "Refresh Config List",
+    callback = function()
+        if dropdownFuncs then
+            dropdownFuncs:Refresh(getConfigFiles(config.path))
+        end
+    end
+})
 
 
 
+local theme_section = settingsPage:Section("Theme Customization", "right")
 
+getgenv().theme = {
+    accent = Color3.fromRGB(168, 157, 159),
+    scroll = Color3.fromRGB(168, 157, 159)
+}
 
+local old_theme = table.clone(getgenv().theme)
+local theme_objects = {}
 
+theme_objects["accent"] = theme_section:Colorpicker({
+    title = "Accent",
+    default = Color3.fromRGB(168, 157, 159),
+    transparency = 1,
+    callback = function(value, transparency)
+        theme.accent = value
+        theme_event:Fire()
+    end
+})
 
+theme_objects["scroll"] = theme_section:Colorpicker({
+    title = "Scrollbar",
+    default = Color3.fromRGB(168, 157, 159),
+    transparency = 1,
+    callback = function(value, transparency)
+        theme.scroll = value
+        theme_event:Fire()
+    end
+})
 
-
-
-
-
-
-
-
-
-
-
-
------------------ hbe page
-
-
-local themes = configs:Section{Name = "Theme", Side = "Left"}
-
-local themepickers = {}
-
-local themelist = themes:Dropdown{
-    Name = "Theme",
-    Default = library.currenttheme,
-    Content = library:GetThemes(),
-    Flag = "Theme Dropdown",
-    Callback = function(option)
-        if option then
-            library:SetTheme(option)
-
-            for option, picker in next, themepickers do
-                picker:Set(library.theme[option])
+theme_section:Button({
+    title = "Reset to Default",
+    callback = function()
+        for i1, v1 in next, old_theme do
+            for i2, v2 in next, theme_objects do
+                if not i1 == i2 then continue end
+                v2:Set(v1)
             end
         end
     end
-}
+})
 
-library:ConfigIgnore("Theme Dropdown")
 
-local namebox = themes:Box{
-    Name = "Custom Theme Name",
-    Placeholder = "Custom Theme",
-    Flag = "Custom Theme"
-}
+local menu_misc = settingsPage:Section("Menu", "right")
 
-library:ConfigIgnore("Custom Theme")
-
-themes:Button{
-    Name = "Save Custom Theme",
-    Callback = function()
-        if library:SaveCustomTheme(library.flags["Custom Theme"]) then
-            themelist:Refresh(library:GetThemes())
-            themelist:Set(library.flags["Custom Theme"])
-            namebox:Set("")
-        end
+menu_misc:Keybind({
+    title = "Menu Keybind",
+    keybindlist = false,
+    keybindname = "Menu:",
+    key = "RightAlt",
+    callback = function()
+        UI["2"].Visible = not UI["2"].Visible
     end
-}
+})
 
-local customtheme = configs:Section{Name = "Custom Theme", Side = "Right"}
-
-themepickers["Accent"] = customtheme:ColorPicker{
-    Name = "Accent",
-    Default = library.theme["Accent"],
-    Flag = "Accent",
-    Callback = function(color)
-        library:ChangeThemeOption("Accent", color)
+menu_misc:Toggle({
+    title = "Keybind UI",
+    default = true,
+    callback = function(bool)
+        UI.KeybindListo.Visible = bool
     end
-}
+})
 
-library:ConfigIgnore("Accent")
+--// Hitbox Expander Page
 
-themepickers["Window Background"] = customtheme:ColorPicker{
-    Name = "Window Background",
-    Default = library.theme["Window Background"],
-    Flag = "Window Background",
-    Callback = function(color)
-        library:ChangeThemeOption("Window Background", color)
-    end
-}
-
-library:ConfigIgnore("Window Background")
-
-themepickers["Window Border"] = customtheme:ColorPicker{
-    Name = "Window Border",
-    Default = library.theme["Window Border"],
-    Flag = "Window Border",
-    Callback = function(color)
-        library:ChangeThemeOption("Window Border", color)
-    end
-}
-
-library:ConfigIgnore("Window Border")
-
-themepickers["Tab Background"] = customtheme:ColorPicker{
-    Name = "Tab Background",
-    Default = library.theme["Tab Background"],
-    Flag = "Tab Background",
-    Callback = function(color)
-        library:ChangeThemeOption("Tab Background", color)
-    end
-}
-
-library:ConfigIgnore("Tab Background")
-
-themepickers["Tab Border"] = customtheme:ColorPicker{
-    Name = "Tab Border",
-    Default = library.theme["Tab Border"],
-    Flag = "Tab Border",
-    Callback = function(color)
-        library:ChangeThemeOption("Tab Border", color)
-    end
-}
-
-library:ConfigIgnore("Tab Border")
-
-themepickers["Tab Toggle Background"] = customtheme:ColorPicker{
-    Name = "Tab Toggle Background",
-    Default = library.theme["Tab Toggle Background"],
-    Flag = "Tab Toggle Background",
-    Callback = function(color)
-        library:ChangeThemeOption("Tab Toggle Background", color)
-    end
-}
-
-library:ConfigIgnore("Tab Toggle Background")
-
-themepickers["Section Background"] = customtheme:ColorPicker{
-    Name = "Section Background",
-    Default = library.theme["Section Background"],
-    Flag = "Section Background",
-    Callback = function(color)
-        library:ChangeThemeOption("Section Background", color)
-    end
-}
-
-library:ConfigIgnore("Section Background")
-
-themepickers["Section Border"] = customtheme:ColorPicker{
-    Name = "Section Border",
-    Default = library.theme["Section Border"],
-    Flag = "Section Border",
-    Callback = function(color)
-        library:ChangeThemeOption("Section Border", color)
-    end
-}
-
-library:ConfigIgnore("Section Border")
-
-themepickers["Text"] = customtheme:ColorPicker{
-    Name = "Text",
-    Default = library.theme["Text"],
-    Flag = "Text",
-    Callback = function(color)
-        library:ChangeThemeOption("Text", color)
-    end
-}
-
-library:ConfigIgnore("Text")
-
-themepickers["Disabled Text"] = customtheme:ColorPicker{
-    Name = "Disabled Text",
-    Default = library.theme["Disabled Text"],
-    Flag = "Disabled Text",
-    Callback = function(color)
-        library:ChangeThemeOption("Disabled Text", color)
-    end
-}
-
-library:ConfigIgnore("Disabled Text")
-
-themepickers["Object Background"] = customtheme:ColorPicker{
-    Name = "Object Background",
-    Default = library.theme["Object Background"],
-    Flag = "Object Background",
-    Callback = function(color)
-        library:ChangeThemeOption("Object Background", color)
-    end
-}
-
-library:ConfigIgnore("Object Background")
-
-themepickers["Object Border"] = customtheme:ColorPicker{
-    Name = "Object Border",
-    Default = library.theme["Object Border"],
-    Flag = "Object Border",
-    Callback = function(color)
-        library:ChangeThemeOption("Object Border", color)
-    end
-}
-
-library:ConfigIgnore("Object Border")
-
-themepickers["Dropdown Option Background"] = customtheme:ColorPicker{
-    Name = "Dropdown Option Background",
-    Default = library.theme["Dropdown Option Background"],
-    Flag = "Dropdown Option Background",
-    Callback = function(color)
-        library:ChangeThemeOption("Dropdown Option Background", color)
-    end
-}
-
-library:ConfigIgnore("Dropdown Option Background")
-
-local configsection = configs:Section{Name = "Configs", Side = "Left"}
-
-local configlist = configsection:Dropdown{
-    Name = "Configs",
-    Content = library:GetConfigs(), 
-    Flag = "Config Dropdown"
-}
-
-library:ConfigIgnore("Config Dropdown")
-
-local loadconfig = configsection:Button{
-    Name = "Load Config",
-    Callback = function()
-        library:LoadConfig(library.flags["Config Dropdown"]) 
-    end
-}
-
-local delconfig = configsection:Button{
-    Name = "Delete Config",
-    Callback = function()
-        library:DeleteConfig(library.flags["Config Dropdown"]) 
-        configlist:Refresh(library:GetConfigs())
-    end
-}
-
-
-local configbox = configsection:Box{
-    Name = "Config Name",
-    Placeholder = "Config Name",
-    Flag = "Config Name"
-}
-
-library:ConfigIgnore("Config Name")
-
-local save = configsection:Button{
-    Name = "Save Config",
-    Callback = function()
-        library:SaveConfig(library.flags["Config Dropdown"] or library.flags["Config Name"]) 
-        configlist:Refresh(library:GetConfigs())
-    end
-}
-
-local keybindsection = configs:Section{Name = "UI Toggle Keybind", Side = "Left"}
-
-keybindsection:Keybind{
-    Name = "UI Toggle",
-    Flag = "UI Toggle",
-    Default = Enum.KeyCode.Insert,
-    Blacklist = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3},
-    Callback = function(_, fromsetting)
-        if not fromsetting then
-            library:Close()
-        end
-    end
-}
-
-keybindsection:Keybind{
-    Name = "Destroy UI",
-    Flag = "Unload UI",
-    Default = Enum.KeyCode.Delete,
-    Blacklist = {Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3},
-    Callback = function(_, fromsetting)
-        if not fromsetting then
-            library:Unload()
-        end
-    end
-}
--- settings page
-
-
-local generalSection = optimizationTab:Section{
-    Name = "General Settings",
-    Side = "Left"
-}
-
-generalSection:Slider{
-    Name = "Wait Per Amount",
-    Min = 100,
-    Max = 1000,
-    Default = 100,
-    Callback = function(value)
-        
-    end
-}
-
-
-local fpsCapSection = optimizationTab:Section{
-    Name = "FPS Cap Settings",
-    Side = "Right"
-}
-
-fpsCapSection:Slider{
-    Name = "FPS Cap",
-    Min = 0,
-    Max = 999,
-    Default = 0,
-    Callback = function(value)
-        if setfpscap then
-            setfpscap(value)
-        end
-    end
-}
-
-
-local playerSection = optimizationTab:Section{
-    Name = "Player Settings",
-    Side = "Left"
-}
-
-playerSection:Toggle{
-    Name = "Ignore Local Player",
-    Default = false,
-    Callback = function(enabled)
-      
-    end
-}
-
-playerSection:Toggle{
-    Name = "Ignore Others",
-    Default = false,
-    Callback = function(enabled)
-        
-    end
-}
-
-playerSection:Toggle{
-    Name = "Ignore Tools",
-    Default = false,
-    Callback = function(enabled)
-       
-    end
-}
-
-
-local renderingSection = optimizationTab:Section{
-    Name = "Rendering Settings",
-    Side = "Right"
-}
-
-renderingSection:Toggle{
-    Name = "Low Rendering",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            for _, instance in ipairs(workspace:GetDescendants()) do
-                if instance:IsA("BasePart") then
-                    instance.Material = Enum.Material.SmoothPlastic
-                    instance.Reflectance = 0
-                end
+local generalSection = hitboxPage:Section("HBE", "left")
+generalSection:Toggle({
+    title = "Enabled",
+    default = false,
+    callback = function(bool)
+        Vnlyisanigger["Hitbox"]["Enabled"] = bool
+        if not bool then
+            for _, player in ipairs(Players:GetPlayers()) do
+                resetHitboxSize(player)
             end
         end
     end
-}
-
-renderingSection:Toggle{
-    Name = "No Shadows",
-    Default = false,
-    Callback = function(enabled)
-        game:GetService("Lighting").GlobalShadows = not enabled
+})
+generalSection:Toggle({
+    title = "Auto Target (EVERYONE MODE MUST BE ON)",
+    default = false,
+    callback = function(bool)
+        Vnlyisanigger["Hitbox"]["AutoTarget"] = bool
     end
-}
+})
+generalSection:Toggle({
+    title = "Enable Gun Detection",
+    default = false,
+    callback = function(bool)
+        Vnlyisanigger["Hitbox"]["GunDetection"] = bool
+    end
+})
+local toggleSection = hitboxPage:Section("Toggles", "left")
+toggleSection:Toggle({
+    title = "Everyone Mode",
+    default = false,
+    callback = function(bool)
+        Vnlyisanigger["Hitbox"]["EveryoneMode"] = bool
+    end
+})
+toggleSection:Toggle({
+    title = "Show Hitbox Box",
+    default = false,
+    callback = function(bool)
+        Vnlyisanigger["Hitbox"]["BoxVisual"] = bool
+    end
+})
+toggleSection:Toggle({
+    title = "Remove Blood Effects",
+    default = false,
+    callback = function(bool)
+        Vnlyisanigger["Hitbox"]["RemoveBlood"] = bool
+        if bool then
+            initializeBloodEffectHandler()
+        end
+    end
+})
 
-renderingSection:Toggle{
-    Name = "No Camera Effects",
-    Default = true,
-    Callback = function(enabled)
-        for _, effect in ipairs(game:GetService("Lighting"):GetChildren()) do
-            if effect:IsA("PostEffect") then
-                effect.Enabled = not enabled
+
+
+local checksSection = hitboxPage:Section("Checks", "left")
+for _, check in pairs({
+    {title = "Crew Check", key = "HitboxCrewCheck"},
+    {title = "Knock Check", key = "HitboxKnockCheck"},
+    {title = "Wall Check", key = "HitboxWallCheck"},
+    {title = "Grabbed Check", key = "HitboxGrabbedCheck"},
+    {title = "Visible Check", key = "HitboxVisibleCheck"},
+}) do
+    checksSection:Toggle({
+        title = check.title,
+        default = Vnlyisanigger["Hitbox"]["Checks"][check.key],
+        callback = function(bool)
+            Vnlyisanigger["Hitbox"]["Checks"][check.key] = bool
+        end
+    })
+end
+
+local function createSliders(section, category)
+    Vnlyisanigger["Hitbox"]["GunCategories"][category] = Vnlyisanigger["Hitbox"]["GunCategories"][category] or {
+        SizeX = 5,
+        SizeY = 5,
+        SizeZ = 5
+    }
+    for axis, default in pairs(Vnlyisanigger["Hitbox"]["GunCategories"][category]) do
+        section:Slider({
+            title = category .. " " .. axis,
+            min = 1,
+            max = 50,
+            default = default,
+            callback = function(value)
+                Vnlyisanigger["Hitbox"]["GunCategories"][category][axis] = value
+            end
+        })
+    end
+end
+
+local shotgunSection = hitboxPage:Section("Shotgun Hitbox Size", "right")
+createSliders(shotgunSection, "Shotgun")
+local pistolSection = hitboxPage:Section("Pistol Hitbox Size", "right")
+createSliders(pistolSection, "Pistol")
+local otherSection = hitboxPage:Section("Other Guns Hitbox Size", "right")
+createSliders(otherSection, "Other")
+
+--// Hitbox Functions
+
+
+local function HitboxWallCheck(pos, ignore)
+    local origin = Camera.CFrame.Position
+    local ray = Ray.new(origin, pos - origin)
+    local hitPart = workspace:FindPartOnRayWithIgnoreList(ray, ignore)
+    return hitPart == nil 
+end
+
+local function HitboxDeleteBloodEffects(character)
+    if not character or not character:IsA("Model") then return end
+    for _, descendant in pairs(character:GetDescendants()) do
+        if descendant:IsA("ParticleEmitter") and descendant.Name == "BloodParticle" then
+            descendant:Destroy()
+        end
+    end
+end
+
+
+local function HitboxMonitorBloodEffects()
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
+                HitboxDeleteBloodEffects(character)
+            end
+        end)
+    end)
+end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character then
+            HitboxDeleteBloodEffects(player.Character)
+        end
+
+        player.CharacterAdded:Connect(function(character)
+            if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
+                HitboxDeleteBloodEffects(character)
+            end
+        end)
+    end
+
+
+local function HitboxRemoveBloodFromExistingPlayers()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character then
+            HitboxDeleteBloodEffects(player.Character)
+        end
+        player.CharacterAdded:Connect(function(character)
+            if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
+                HitboxDeleteBloodEffects(character)
+            end
+        end)
+    end
+end
+
+
+local function HitboxGetSizeConfig(toolName, gunDetection)
+    if gunDetection and toolName then
+        local gunType = GunTypes[toolName] or "Other"
+        return Vnlyisanigger["Hitbox"]["GunCategories"][gunType] or {SizeX = 5, SizeY = 5, SizeZ = 5}
+    end
+    return {SizeX = 8, SizeY = 7, SizeZ = 5}
+end
+
+local function HitboxIsValidTarget(player)
+    if not player or not player:IsA("Player") or player == LocalPlayer then
+        return false 
+    end
+
+    local character = player.Character
+    if not character or not character:IsA("Model") then
+        return false 
+    end
+
+    local checks = Vnlyisanigger["Hitbox"]["Checks"]
+
+    if checks["CrewCheck"] then
+        local targetData = player:FindFirstChild("DataFolder")
+        local localData = LocalPlayer:FindFirstChild("DataFolder")
+        if targetData and localData then
+            local targetCrew = targetData.Information and targetData.Information.Crew
+            local localCrew = localData.Information and localData.Information.Crew
+            if targetCrew and localCrew and (targetCrew.Value == localCrew.Value) then
+                return false 
             end
         end
     end
-}
 
-renderingSection:Toggle{
-    Name = "Reset Materials",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            for _, part in ipairs(workspace:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Material = Enum.Material.Plastic
-                end
+
+    if checks["KnockCheck"] then
+        local bodyEffects = character:FindFirstChild("BodyEffects")
+        if bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value then
+            return false 
+        end
+    end
+
+    if checks["GrabbedCheck"] then
+        if character:FindFirstChild("GRABBING_CONSTRAINT") then
+            return false 
+        end
+    end
+
+
+    if checks["VisibleCheck"] then
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+            if not onScreen then
+                return false 
             end
         end
     end
-}
 
 
-local terrainSection = optimizationTab:Section{
-    Name = "Terrain Settings",
-    Side = "Left"
-}
-
-terrainSection:Toggle{
-    Name = "Low Water Graphics",
-    Default = false,
-    Callback = function(enabled)
-        local terrain = workspace:FindFirstChildOfClass("Terrain")
-        if terrain then
-            terrain.WaterReflectance = enabled and 0 or 1
-            terrain.WaterWaveSize = enabled and 0 or 0.15
+    if checks["WallCheck"] then
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        if hrp and not HitboxWallCheck(hrp.Position, {LocalPlayer.Character, character}) then
+            return false 
         end
     end
-}
 
-terrainSection:Toggle{
-    Name = "No Decorations",
-    Default = false,
-    Callback = function(enabled)
-       
+    return true 
+end
+
+local originalSizes = {}
+
+local function HitboxResetSize(target)
+    if not target or not target:IsA("Player") then return end
+    local character = target.Character
+    if not character or not character:IsA("Model") then return end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp and originalSizes[target] then
+        hrp.Size = originalSizes[target] 
+        originalSizes[target] = nil 
+        hrp.Transparency = 1
+        hrp.Material = Enum.Material.Plastic
+        hrp.CanCollide = true
     end
-}
+end
 
+local function HitboxUpdateSize(target, sizeConfig, boxVisual)
+    if not target or not HitboxIsValidTarget(target) then
+        HitboxResetSize(target) 
+        return
+    end
 
-local visualsSection = optimizationTab:Section{
-    Name = "Visual Effects Settings",
-    Side = "Right"
-}
+    local character = target.Character
+    if not character then return end
 
-visualsSection:Toggle{
-    Name = "No Particles",
-    Default = false,
-    Callback = function(enabled)
-        for _, instance in ipairs(workspace:GetDescendants()) do
-            if instance:IsA("ParticleEmitter") or instance:IsA("Trail") or instance:IsA("Sparkles") then
-                instance.Enabled = not enabled
-            end
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        if not originalSizes[target] then
+            originalSizes[target] = hrp.Size 
         end
-    end
-}
 
-visualsSection:Toggle{
-    Name = "No Explosions",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            workspace.DescendantAdded:Connect(function(instance)
-                if instance:IsA("Explosion") then
-                    instance.BlastPressure = 1
-                    instance.BlastRadius = 1
-                end
-            end)
+        hrp.Size = Vector3.new(sizeConfig.SizeX, sizeConfig.SizeY, sizeConfig.SizeZ)
+
+        if boxVisual then
+            hrp.Transparency = 0.5
+            hrp.Material = Enum.Material.ForceField
+        else
+            hrp.Transparency = 1
+            hrp.Material = Enum.Material.Plastic
         end
-    end
-}
 
-visualsSection:Toggle{
-    Name = "Smaller Explosions",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            for _, instance in ipairs(workspace:GetDescendants()) do
-                if instance:IsA("Explosion") then
-                    instance.BlastPressure = 1
-                    instance.BlastRadius = 1
-                end
-            end
-        end
+        hrp.CanCollide = false 
     end
-}
+end
 
-visualsSection:Toggle{
-    Name = "No Clothing",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            for _, character in ipairs(game:GetService("Players"):GetPlayers()) do
-                if character.Character then
-                    for _, obj in ipairs(character.Character:GetDescendants()) do
-                        if obj:IsA("Clothing") or obj:IsA("Accessory") then
-                            obj:Destroy()
+local function HitboxGetNewTarget()
+    local closestDistance = math.huge
+    local bestTarget = nil
+    for _, player in ipairs(Players:GetPlayers()) do
+        if HitboxIsValidTarget(player) then
+            local character = player.Character
+            if character then
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                        if distance < closestDistance then
+                            closestDistance = distance
+                            bestTarget = player
                         end
                     end
                 end
             end
         end
     end
-}
+    return bestTarget
+end
 
-visualsSection:Toggle{
-    Name = "Remove Decals",
-    Default = false,
-    Callback = function(enabled)
-        for _, instance in ipairs(workspace:GetDescendants()) do
-            if instance:IsA("Decal") or instance:IsA("Texture") then
-                instance.Transparency = enabled and 1 or 0
+local function HitboxApplySettings(players, boxVisual, gunDetection, everyoneMode, autoTarget)
+    local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    local toolName = equippedTool and equippedTool.Name or nil
+    local gunSize = HitboxGetSizeConfig(toolName, gunDetection)
+    local closestPlayer = autoTarget and HitboxGetNewTarget() or nil
+
+    for _, player in ipairs(players) do
+        if player and player:IsA("Player") and player ~= LocalPlayer and (everyoneMode or HitboxIsValidTarget(player)) then
+            if autoTarget and player ~= closestPlayer then
+                HitboxResetSize(player)
+            else
+                HitboxUpdateSize(player, gunSize, boxVisual)
             end
+        else
+            HitboxResetSize(player)
         end
-    end
-}
-
-
-local meshSection = optimizationTab:Section{
-    Name = "Mesh Settings",
-    Side = "Left"
-}
-
-
-meshSection:Toggle{
-    Name = "No Texture",
-    Default = false,
-    Callback = function(enabled)
-        for _, instance in ipairs(workspace:GetDescendants()) do
-            if instance:IsA("MeshPart") or (instance:IsA("SpecialMesh") and pcall(function() return instance.TextureId end)) then
-                if pcall(function() return instance.TextureId end) then
-                    instance.TextureId = enabled and "" or instance.TextureId
-                end
-            end
-        end
-    end
-}
-
-meshSection:Toggle{
-    Name = "Low Quality Meshes",
-    Default = false,
-    Callback = function(enabled)
-        for _, instance in ipairs(workspace:GetDescendants()) do
-            if instance:IsA("MeshPart") then
-                instance.RenderFidelity = enabled and Enum.RenderFidelity.Performance or Enum.RenderFidelity.Automatic
-            end
-        end
-    end
-}
-
-
-local imageSection = optimizationTab:Section{
-    Name = "Image Settings",
-    Side = "Right"
-}
-
-imageSection:Toggle{
-    Name = "Invisible Images",
-    Default = false,
-    Callback = function(enabled)
-        for _, instance in ipairs(workspace:GetDescendants()) do
-            if instance:IsA("Decal") or instance:IsA("Texture") then
-                instance.Transparency = enabled and 1 or 0
-            end
-        end
-    end
-}
-
-imageSection:Toggle{
-    Name = "Low Detail Images",
-    Default = false,
-    Callback = function(enabled)
-   
-    end
-}
-
-imageSection:Toggle{
-    Name = "Destroy Images",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            for _, instance in ipairs(workspace:GetDescendants()) do
-                if instance:IsA("Decal") or instance:IsA("Texture") then
-                    instance:Destroy()
-                end
-            end
-        end
-    end
-}
-
-
-local textSection = optimizationTab:Section{
-    Name = "Text Settings",
-    Side = "Left"
-}
-
-textSection:Toggle{
-    Name = "Low Quality Text",
-    Default = false,
-    Callback = function(enabled)
-        for _, instance in ipairs(workspace:GetDescendants()) do
-            if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
-                instance.Font = enabled and Enum.Font.SourceSans or Enum.Font.Gotham
-                instance.TextScaled = not enabled
-            end
-        end
-    end
-}
-
-textSection:Toggle{
-    Name = "Invisible Text",
-    Default = false,
-    Callback = function(enabled)
-        for _, instance in ipairs(workspace:GetDescendants()) do
-            if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
-                instance.Visible = not enabled
-            end
-        end
-    end
-}
-
-textSection:Toggle{
-    Name = "Destroy Text",
-    Default = false,
-    Callback = function(enabled)
-        if enabled then
-            for _, instance in ipairs(workspace:GetDescendants()) do
-                if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
-                    instance:Destroy()
-                end
-            end
-        end
-    end
-}
-
--- optimization page
-
-
-
-
-
-
-
-
-
-
-
-
-local textSection = espTab:Section{
-    Name = "Text Settings",
-    Side = "Right"
-}
-
-
-getgenv().esp = getgenv().esp or {}
-getgenv().players = getgenv().players or {}
-
-local player = {}
-player.__index = player
-
-
-getgenv().esp.TextEnabled = getgenv().esp.TextEnabled ~= nil and getgenv().esp.TextEnabled or false
-getgenv().esp.TextColor = getgenv().esp.TextColor or Color3.fromRGB(255, 255, 255)
-getgenv().esp.TextSize = getgenv().esp.TextSize or 15
-getgenv().esp.ShowPlayerName = getgenv().esp.ShowPlayerName ~= nil and getgenv().esp.ShowPlayerName or false
-getgenv().esp.ShowDistance = getgenv().esp.ShowDistance ~= nil and getgenv().esp.ShowDistance or false
-getgenv().esp.ShowToolName = getgenv().esp.ShowToolName ~= nil and getgenv().esp.ShowToolName or false
-
-
-textSection:Toggle{
-    Name = "Enable Text Display",
-    Default = getgenv().esp.TextEnabled,
-    Callback = function(value)
-        getgenv().esp.TextEnabled = value
-    end
-}
-
-
-
-textSection:Toggle{
-    Name = "Show Player Name",
-    Default = getgenv().esp.ShowPlayerName,
-    Callback = function(value)
-        getgenv().esp.ShowPlayerName = value
-    end
-}
-
-textSection:Toggle{
-    Name = "Show Distance",
-    Default = getgenv().esp.ShowDistance,
-    Callback = function(value)
-        getgenv().esp.ShowDistance = value
-    end
-}
-
-textSection:Toggle{
-    Name = "Show Tool Name",
-    Default = getgenv().esp.ShowToolName,
-    Callback = function(value)
-        getgenv().esp.ShowToolName = value
-    end
-}
-
-
-textSection:ColorPicker{
-    Name = "Text Color",
-    Default = getgenv().esp.TextColor,
-    Callback = function(color)
-        getgenv().esp.TextColor = color
-    end
-}
-
-
-textSection:Slider{
-    Name = "Text Size",
-    Min = 10,
-    Max = 30,
-    Default = getgenv().esp.TextSize,
-    Callback = function(value)
-        getgenv().esp.TextSize = value
-    end
-}
-
-
-
-function player:RenderText(data)
-    if data.character == Players.LocalPlayer.Character then
-
-        if self.textDrawing then
-            self.textDrawing.Visible = false
-        end
-        return
-    end
-
-    if not getgenv().esp.TextEnabled then
-        if self.textDrawing then
-            self.textDrawing.Visible = false
-        end
-        return
-    end
-
-
-    if not self.textDrawing then
-        self.textDrawing = Drawing.new("Text")
-        self.textDrawing.Center = true
-        self.textDrawing.Outline = true
-        self.textDrawing.Font = 2
-    end
-
-    local displayText = ""
-    if getgenv().esp.ShowPlayerName and data.character then
-        displayText = displayText .. data.character.Name
-    end
-
-    if getgenv().esp.ShowDistance and data.distance then
-        local distanceText = string.format(" (%.1fm)", data.distance)
-        displayText = displayText .. distanceText
-    end
-
-    if getgenv().esp.ShowToolName and data.character then
-        local tool = data.character:FindFirstChildOfClass("Tool")
-        if tool then
-            displayText = displayText .. " - " .. tool.Name
-        end
-    end
-
-    if displayText == "" then
-        self.textDrawing.Visible = false
-    else
-        self.textDrawing.Text = displayText
-        self.textDrawing.Color = getgenv().esp.TextColor
-        self.textDrawing.Size = getgenv().esp.TextSize
-        self.textDrawing.Position = data.position and Vector2.new(data.position.X, data.position.Y - 30) or Vector2.new(0, 0)
-        self.textDrawing.Visible = true
     end
 end
 
 
-getgenv().esp["NewPlayer"] = function(playerInstance)
-    local playerObj = setmetatable({}, player)
-    playerObj.instance = playerInstance
-    playerObj.textDrawing = nil
-    playerObj.RenderText = player.RenderText
+local function initializeBloodEffectHandler()
+    if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
+        HitboxMonitorBloodEffects() 
+        HitboxRemoveBloodFromExistingPlayers() 
+    end
+end
 
-    playerObj.Check = function()
-        if playerObj.instance and playerObj.instance.Character then
-            local character = playerObj.instance.Character
-            local headPart = character:FindFirstChild("Head")
-            if headPart then
-                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPart.Position + Vector3.new(0, 1.5, 0))
-                if onScreen then
-                    local distance = (headPart.Position - workspace.CurrentCamera.CFrame.Position).Magnitude
-                    return {
-                        character = character,
-                        distance = distance,
-                        position = Vector2.new(screenPos.X, screenPos.Y)
-                    }
+
+local function getVisiblePlayers()
+    local visiblePlayers = {}
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and HitboxIsValidTarget(player) then
+            local character = player.Character
+            if character and character:IsA("Model") then
+                local hrp = character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScreen then
+                        table.insert(visiblePlayers, player)
+                    end
                 end
             end
         end
-        return nil
     end
-
-    getgenv().players[playerInstance] = playerObj
-    return playerObj
+    return visiblePlayers
 end
 
-
-for _, playerInstance in ipairs(Players:GetPlayers()) do
-    if not getgenv().players[playerInstance] then
-        getgenv().esp["NewPlayer"](playerInstance)
-    end
-end
 
 
 RunService.RenderStepped:Connect(function()
-    for _, playerObj in pairs(getgenv().players or {}) do
-        if playerObj and type(playerObj.RenderText) == "function" then
-            local data = playerObj:Check()
-            if data then
-                playerObj:RenderText(data)
-            end
+    if Vnlyisanigger["Hitbox"]["Enabled"] then
+        local players = getVisiblePlayers()
+        local boxVisual = Vnlyisanigger["Hitbox"]["BoxVisual"]
+        local gunDetection = Vnlyisanigger["Hitbox"]["GunDetection"]
+        local everyoneMode = Vnlyisanigger["Hitbox"]["EveryoneMode"]
+        local autoTarget = Vnlyisanigger["Hitbox"]["AutoTarget"]
+
+        HitboxApplySettings(players, boxVisual, gunDetection, everyoneMode, autoTarget)
+    else
+        for _, player in ipairs(Players:GetPlayers()) do
+            HitboxResetSize(player)
         end
     end
 end)
 
+--// Camlock Page
 
-Players.PlayerAdded:Connect(function(playerInstance)
-    getgenv().esp["NewPlayer"](playerInstance)
-end)
+local camSection = camlockPage:Section("General Settings", "left")
 
-
-Players.PlayerRemoving:Connect(function(playerInstance)
-    if getgenv().players[playerInstance] then
-        if getgenv().players[playerInstance].textDrawing then
-            getgenv().players[playerInstance].textDrawing:Remove()
-        end
-        getgenv().players[playerInstance] = nil
+camSection:Toggle({
+    title = "Enable Camlock",
+    default = Vnlyisanigger["Camlock"]["Enabled"],
+    callback = function(bool)
+        Vnlyisanigger["Camlock"]["Enabled"] = bool
     end
-end)
+})
 
-
-local boxSection = espTab:Section{
-    Name = "Box Settings",
-    Side = "Left"
-}
-
-
-getgenv().esp.BoxEnabled = getgenv().esp.BoxEnabled ~= nil and getgenv().esp.BoxEnabled or false
-getgenv().esp.BoxCorners = getgenv().esp.BoxCorners ~= nil and getgenv().esp.BoxCorners or false
-getgenv().esp.BoxDynamic = getgenv().esp.BoxDynamic ~= nil and getgenv().esp.BoxDynamic or false
-getgenv().esp.BoxStaticXFactor = getgenv().esp.BoxStaticXFactor or 50
-getgenv().esp.BoxStaticYFactor = getgenv().esp.BoxStaticYFactor or 100
-getgenv().esp.BoxColor = getgenv().esp.BoxColor or Color3.fromRGB(255, 255, 255)
-getgenv().esp.CornerColor = getgenv().esp.CornerColor or Color3.fromRGB(255, 0, 204)
-
-
-boxSection:Toggle{
-    Name = "Enable Box",
-    Default = getgenv().esp.BoxEnabled,
-    Callback = function(value)
-        getgenv().esp.BoxEnabled = value
-    end
-}
-
-boxSection:Toggle{
-    Name = "Box Corners",
-    Default = getgenv().esp.BoxCorners,
-    Callback = function(value)
-        getgenv().esp.BoxCorners = value
-    end
-}
-
-boxSection:Toggle{
-    Name = "Dynamic Box Size",
-    Default = getgenv().esp.BoxDynamic,
-    Callback = function(value)
-        getgenv().esp.BoxDynamic = value
-    end
-}
-
-
-boxSection:ColorPicker{
-    Name = "Box Color",
-    Default = getgenv().esp.BoxColor,
-    Callback = function(color)
-        getgenv().esp.BoxColor = color
-    end
-}
-
-boxSection:ColorPicker{
-    Name = "Corner Color",
-    Default = getgenv().esp.CornerColor,
-    Callback = function(color)
-        getgenv().esp.CornerColor = color
-    end
-}
-
-
-
-boxSection:Slider{
-    Name = "Static X Factor",
-    Min = 0,
-    Max = 1000,
-    Default = getgenv().esp.BoxStaticXFactor,
-    Callback = function(value)
-        getgenv().esp.BoxStaticXFactor = value
-    end
-}
-
-boxSection:Slider{
-    Name = "Static Y Factor",
-    Min = 0,
-    Max = 1000,
-    Default = getgenv().esp.BoxStaticYFactor,
-    Callback = function(value)
-        getgenv().esp.BoxStaticYFactor = value
-    end
-}
-
-
-
-
-
-function player:RenderBox(data)
-    if not self.boxDrawing then
-        self.boxDrawing = Drawing.new("Square")
-        self.boxDrawing.Thickness = 1
-        self.boxDrawing.Filled = false
-    end
-
-    local sizeX, sizeY
-    if getgenv().esp.BoxDynamic then
-        local characterPosition = data.character.HumanoidRootPart.Position
-        local distance = (workspace.CurrentCamera.CFrame.Position - characterPosition).Magnitude
-        local sizeFactor = 1 / distance * 100 
-        sizeX = 30 * sizeFactor
-        sizeY = 50 * sizeFactor
-    else
-        sizeX = getgenv().esp.BoxStaticXFactor
-        sizeY = getgenv().esp.BoxStaticYFactor
-    end
-
-    local headPosition = data.character:FindFirstChild("Head") and data.character.Head.Position or data.character.HumanoidRootPart.Position
-    local feetPosition = data.character.HumanoidRootPart.Position - Vector3.new(0, data.character.Humanoid.HipHeight + -3.6, 0)
-
-    local topScreenPos, onScreenTop = workspace.CurrentCamera:WorldToViewportPoint(headPosition)
-    local bottomScreenPos, onScreenBottom = workspace.CurrentCamera:WorldToViewportPoint(feetPosition)
-
-    if data.character == Players.LocalPlayer.Character or not (onScreenTop and onScreenBottom) then
-
-        self.boxDrawing.Visible = false
-        if self.cornerDrawings then
-            for _, line in ipairs(self.cornerDrawings) do
-                line.Visible = false
-            end
-        end
-        return
-    end
-
-    local position = Vector2.new(bottomScreenPos.X - sizeX / 2, bottomScreenPos.Y)
-
-    if getgenv().esp.BoxEnabled then
-        self.boxDrawing.Size = Vector2.new(sizeX, sizeY)
-        self.boxDrawing.Position = position
-        self.boxDrawing.Color = getgenv().esp.BoxColor
-        self.boxDrawing.Visible = true
-    else
-        self.boxDrawing.Visible = false
-    end
-
-    if getgenv().esp.BoxCorners then
-        if not self.cornerDrawings then
-            self.cornerDrawings = {}
-            for _ = 1, 4 do
-                local cornerLine = Drawing.new("Line")
-                cornerLine.Thickness = 2
-                table.insert(self.cornerDrawings, cornerLine)
-            end
-        end
-
-        local cornerLength = sizeX / 4
-        self.cornerDrawings[1].From = position
-        self.cornerDrawings[1].To = position + Vector2.new(cornerLength, 0)
-
-        self.cornerDrawings[2].From = position
-        self.cornerDrawings[2].To = position + Vector2.new(0, cornerLength)
-
-        self.cornerDrawings[3].From = position + Vector2.new(sizeX, 0)
-        self.cornerDrawings[3].To = position + Vector2.new(sizeX - cornerLength, 0)
-
-        self.cornerDrawings[4].From = position + Vector2.new(sizeX, sizeY)
-        self.cornerDrawings[4].To = position + Vector2.new(sizeX - cornerLength, sizeY)
-
-        for _, line in ipairs(self.cornerDrawings) do
-            line.Color = getgenv().esp.CornerColor
-            line.Visible = true
-        end
-    else
-        if self.cornerDrawings then
-            for _, line in ipairs(self.cornerDrawings) do
-                line.Visible = false
-            end
+camSection:TextBox({
+    title = "Camlock Keybind",
+    default = Vnlyisanigger["Camlock"]["Keybind"] or "X",
+    placeholder = "Enter key (e.g., X)",
+    callback = function(value)
+        if value and value:match("^[%w%d]$") then 
+            Vnlyisanigger["Camlock"]["Keybind"] = value:upper() 
+        else
+            Vnlyisanigger["Camlock"]["Keybind"] = "X" 
         end
     end
+})
+
+camSection:Toggle({
+    title = "Sticky Aim",
+    default = Vnlyisanigger["Camlock"]["StickyAim"],
+    callback = function(bool)
+        Vnlyisanigger["Camlock"]["StickyAim"] = bool
+    end
+})
+
+local easingSection = camlockPage:Section("Easing Settings", "left")
+
+easingSection:Dropdown({
+    title = "Easing Style",
+    values = {"Linear", "Sine", "Quad", "Cubic", "Quart", "Quint", "Exponential", "Circular", "Back", "Bounce", "Elastic", "SmoothBounce", "OverShoot", "SnappyElastic"},
+    default = Vnlyisanigger["Camlock"]["Easing"]["Style"],
+    callback = function(value)
+        Vnlyisanigger["Camlock"]["Easing"]["Style"] = value
+    end
+})
+
+easingSection:Dropdown({
+    title = "Easing Direction",
+    values = {"In", "Out", "InOut"},
+    default = tostring(Vnlyisanigger["Camlock"]["Easing"]["Direction"]):match("Enum.EasingDirection.(.*)"),
+    callback = function(value)
+        Vnlyisanigger["Camlock"]["Easing"]["Direction"] = Enum.EasingDirection[value]
+    end
+})
+
+local checksSection = camlockPage:Section("Checks", "right")
+
+local checks = {
+    {title = "Crew Check", key = "CrewCheck"},
+    {title = "Knock Check", key = "KnockCheck"},
+    {title = "Grabbed Check", key = "GrabbedCheck"},
+    {title = "First Person Only", key = "FirstPersonOnly"},
+    {title = "Visible Check", key = "VisibleCheck"},
+    {title = "Wall Check", key = "WallCheck"}
+}
+
+for _, check in ipairs(checks) do
+    checksSection:Toggle({
+        title = check.title,
+        default = Vnlyisanigger["Camlock"] and Vnlyisanigger["Camlock"]["Checks"] and Vnlyisanigger["Camlock"]["Checks"][check.key] or false,
+        callback = function(bool)
+            Vnlyisanigger["Camlock"]["Checks"] = Vnlyisanigger["Camlock"]["Checks"] or {}
+            Vnlyisanigger["Camlock"]["Checks"][check.key] = bool
+        end
+    })
 end
 
+local smoothnessSection = camlockPage:Section("Smoothness", "right")
 
-for _, playerInstance in ipairs(Players:GetPlayers()) do
-    if not getgenv().players[playerInstance] then
-        getgenv().esp["NewPlayer"](playerInstance)
-    else
-        getgenv().players[playerInstance].RenderBox = player.RenderBox
+smoothnessSection:Toggle({
+    title = "Enable Smoothness",
+    default = Vnlyisanigger["Camlock"]["Smoothness"]["Enabled"],
+    callback = function(bool)
+        Vnlyisanigger["Camlock"]["Smoothness"]["Enabled"] = bool
     end
+})
+smoothnessSection:TextBox({
+    title = "Smoothness X",
+    default = tostring(Vnlyisanigger["Camlock"]["Smoothness"]["X"]),
+    placeholder = "Enter Smoothness X value",
+    callback = function(value)
+        local num = tonumber(value)
+        if num and num > 0 then
+            Vnlyisanigger["Camlock"]["Smoothness"]["X"] = num
+        else
+        end
+    end
+})
+smoothnessSection:TextBox({
+    title = "Smoothness Y",
+    default = tostring(Vnlyisanigger["Camlock"]["Smoothness"]["Y"]),
+    placeholder = "Enter Smoothness Y value",
+    callback = function(value)
+        local num = tonumber(value)
+        if num and num > 0 then
+            Vnlyisanigger["Camlock"]["Smoothness"]["Y"] = num
+        else
+        end
+    end
+})
+
+local predictionSection = camlockPage:Section("Prediction", "right")
+
+predictionSection:Toggle({
+    title = "Enable Prediction",
+    default = Vnlyisanigger["Camlock"]["Prediction"]["Enabled"],
+    callback = function(bool)
+        Vnlyisanigger["Camlock"]["Prediction"]["Enabled"] = bool
+    end
+})
+predictionSection:TextBox({
+    title = "Prediction X",
+    default = tostring(Vnlyisanigger["Camlock"]["Prediction"]["X"]),
+    placeholder = "Enter Prediction X value",
+    callback = function(value)
+        local num = tonumber(value)
+        if num then
+            Vnlyisanigger["Camlock"]["Prediction"]["X"] = num
+        else
+        end
+    end
+})
+predictionSection:TextBox({
+    title = "Prediction Y",
+    default = tostring(Vnlyisanigger["Camlock"]["Prediction"]["Y"]),
+    placeholder = "Enter Prediction Y value",
+    callback = function(value)
+        local num = tonumber(value)
+        if num then
+            Vnlyisanigger["Camlock"]["Prediction"]["Y"] = num
+        else
+        end
+    end
+})
+
+local closestPointSection = camlockPage:Section("Closest Point", "left")
+
+closestPointSection:Dropdown({
+    title = "Hitpart",
+    values = bodyParts,
+    default = Vnlyisanigger["Camlock"]["ClosestPoint"]["Hitpart"],
+    callback = function(selectedPart)
+        Vnlyisanigger["Camlock"]["ClosestPoint"]["Hitpart"] = selectedPart
+    end
+})
+
+
+closestPointSection:Toggle({
+    title = "Enable Closest Point",
+    default = Vnlyisanigger["Camlock"]["ClosestPoint"]["Enabled"],
+    callback = function(bool)
+        Vnlyisanigger["Camlock"]["ClosestPoint"]["Enabled"] = bool
+    end
+})
+
+closestPointSection:Dropdown({
+    title = "Closest Point Mode",
+    values = {"Normal", "Sphere", "Box", "Ray", "Hybrid", "CenterMass", "Smart", "VelocityPrediction"},
+    default = Vnlyisanigger["Camlock"]["ClosestPoint"]["Mode"],
+    callback = function(value)
+        Vnlyisanigger["Camlock"]["ClosestPoint"]["Mode"] = value
+    end
+})
+
+closestPointSection:BoneSelector({
+    title = "Select Bones (Closest Point)",
+    multi = true, 
+    default = {"Head"}, 
+    callback = function(selectedBones)
+        Vnlyisanigger["Camlock"]["ClosestPoint"]["SelectedBones"] = selectedBones
+    end
+})
+
+
+--// Camlock Functions
+
+local userWantsCamlock = Vnlyisanigger["Camlock"]["Enabled"]
+local actualCamlockActive = false
+local currentTarget = nil
+
+local function isInFirstPerson()
+    return (Camera.CFrame.Position - Camera.Focus.Position).Magnitude < 1
 end
 
+local function WallCheck(pos, ignore)
+    local origin = Camera.CFrame.Position
+    local ray = Ray.new(origin, pos - origin)
+    local hitPart = workspace:FindPartOnRayWithIgnoreList(ray, ignore)
+    return hitPart == nil
+end
 
-RunService.RenderStepped:Connect(function()
-    for _, playerObj in pairs(getgenv().players or {}) do
-        if playerObj and type(playerObj.RenderBox) == "function" then
-            local data = playerObj:Check()
-            if data then
-                playerObj:RenderBox(data)
+local function isValidTarget(p)
+    if not p or p == LocalPlayer then return false end
+    local c = p.Character
+    if not c then return false end
+
+    local checks = Vnlyisanigger["Camlock"]["Checks"]
+
+    if checks["CrewCheck"] then
+        local targetCrew = p:FindFirstChild("DataFolder")
+        local localCrew = LocalPlayer:FindFirstChild("DataFolder")
+        if targetCrew and localCrew then
+            local targetCrewName = targetCrew:FindFirstChild("Information") and targetCrew.Information:FindFirstChild("Crew")
+            local localCrewName = localCrew:FindFirstChild("Information") and localCrew.Information:FindFirstChild("Crew")
+            if targetCrewName and localCrewName and (targetCrewName.Value == localCrewName.Value) then
+                return false
             end
         end
     end
-end)
 
-
-local generalInfoSection = espTab:Section{
-    Name = "General Info Settings",
-    Side = "Right"
-}
-
-
-getgenv().esp.HealthBarEnabled = getgenv().esp.HealthBarEnabled ~= nil and getgenv().esp.HealthBarEnabled or false
-getgenv().esp.ArmorBarEnabled = getgenv().esp.ArmorBarEnabled ~= nil and getgenv().esp.ArmorBarEnabled or false
-
-
-generalInfoSection:Toggle{
-    Name = "Enable Health Bar",
-    Default = getgenv().esp.HealthBarEnabled,
-    Callback = function(value)
-        getgenv().esp.HealthBarEnabled = value
-    end
-}
-
-generalInfoSection:Toggle{
-    Name = "Enable Armor Bar",
-    Default = getgenv().esp.ArmorBarEnabled,
-    Callback = function(value)
-        getgenv().esp.ArmorBarEnabled = value
-    end
-}
-
-
-function player:RenderGeneralInfo(data)
-    if not data or not data.character then return end 
-
-    if data.character == Players.LocalPlayer.Character then
-
-        return
-    end
-
-
-    if not self.healthBar then
-        self.healthBar = Drawing.new("Square")
-        self.healthBar.Filled = true
-        self.healthBar.Thickness = 1
-        self.healthBar.Size = Vector2.new(10, 50) 
-    end
-
-    if not self.armorBar then
-        self.armorBar = Drawing.new("Square")
-        self.armorBar.Filled = true
-        self.armorBar.Thickness = 1
-        self.armorBar.Size = Vector2.new(10, 50) 
-    end
-
-    local humanoid = data.character:FindFirstChildOfClass("Humanoid")
-    local bodyEffects = data.character:FindFirstChild("BodyEffects")
-    local armorValue = bodyEffects and bodyEffects:FindFirstChild("Armor") and bodyEffects.Armor.Value or 0
-
-
-    if not humanoid or not data.character:FindFirstChild("HumanoidRootPart") then
-        self.healthBar.Visible = false
-        self.armorBar.Visible = false
-        return
-    end
-
-    local headPosition = data.character:FindFirstChild("Head") and data.character.Head.Position or data.character.HumanoidRootPart.Position
-    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPosition)
-
-
-    if getgenv().esp.HealthBarEnabled then
-        self.healthBar.Color = Color3.fromRGB(0, 255, 0):lerp(Color3.fromRGB(255, 0, 0), 1 - (humanoid.Health / math.max(humanoid.MaxHealth, 1)))
-        self.healthBar.Position = Vector2.new(screenPos.X - 30, screenPos.Y + 15)
-        self.healthBar.Visible = onScreen
-    else
-        self.healthBar.Visible = false
-    end
-
-
-    if getgenv().esp.ArmorBarEnabled and armorValue > 0 then
-        self.armorBar.Color = Color3.fromRGB(0, 100, 255):lerp(Color3.fromRGB(100, 100, 100), 1 - (armorValue / 100))
-        self.armorBar.Position = Vector2.new(screenPos.X + 30, screenPos.Y + 15) 
-        self.armorBar.Visible = onScreen
-    else
-        self.armorBar.Visible = false
-    end
-end
-
-
-function validatePlayerData(playerObj)
-    if not playerObj.instance or not playerObj.instance.Character or not playerObj.instance.Character:FindFirstChildOfClass("Humanoid") then
+    if checks["KnockCheck"] and c:FindFirstChild("BodyEffects") and c.BodyEffects:FindFirstChild("K.O") and c.BodyEffects["K.O"].Value then
         return false
     end
+
+    if checks["GrabbedCheck"] and c:FindFirstChild("GRABBING_CONSTRAINT") then
+        return false
+    end
+
+    if checks["WallCheck"] then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp and not WallCheck(hrp.Position, {LocalPlayer.Character, c}) then
+            return false
+        end
+    end
+
     return true
 end
 
-
-for _, playerInstance in ipairs(Players:GetPlayers()) do
-    if not getgenv().players[playerInstance] then
-        getgenv().esp["NewPlayer"](playerInstance)
-    else
-        getgenv().players[playerInstance].RenderGeneralInfo = player.RenderGeneralInfo
+local function toggleCamlock()
+    userWantsCamlock = not userWantsCamlock
+    Vnlyisanigger["Camlock"]["Enabled"] = userWantsCamlock
+    if not userWantsCamlock then
+        currentTarget = nil
     end
 end
 
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
 
-RunService.RenderStepped:Connect(function()
-    for _, playerObj in pairs(getgenv().players or {}) do
-        if playerObj and type(playerObj.RenderGeneralInfo) == "function" and validatePlayerData(playerObj) then
-            local data = playerObj:Check()
-            if data then
-                playerObj:RenderGeneralInfo(data)
-            end
+    local keybindName = Vnlyisanigger["Camlock"]["Keybind"] or "X" 
+    local keybind = Enum.KeyCode[keybindName:upper()] 
+
+    if keybind and input.KeyCode == keybind then
+        toggleCamlock() 
+    end
+end)
+
+local easingFunctions = {
+    Linear = function(a) return a end,
+    Sine = function(a) return 1 - math.cos((a * math.pi) / 2) end,
+    Quad = function(a) return a ^ 2 end,
+    Cubic = function(a) return a ^ 3 end,
+    Quart = function(a) return a ^ 4 end,
+    Quint = function(a) return a ^ 5 end,
+    Exponential = function(a) return (a == 0) and 0 or (2 ^ (10 * (a - 1))) end,
+    Circular = function(a) return 1 - math.sqrt(1 - a ^ 2) end,
+    Back = function(a)
+        local s = 1.70158
+        return a ^ 2 * ((s + 1) * a - s)
+    end,
+    Bounce = function(a)
+        if a < 1 / 2.75 then
+            return 7.5625 * a * a
+        elseif a < 2 / 2.75 then
+            a = a - 1.5 / 2.75
+            return 7.5625 * a * a + 0.75
+        elseif a < 2.5 / 2.75 then
+            a = a - 2.25 / 2.75
+            return 7.5625 * a * a + 0.9375
         else
-            if playerObj.healthBar then playerObj.healthBar.Visible = false end
-            if playerObj.armorBar then playerObj.armorBar.Visible = false end
+            a = a - 2.625 / 2.75
+            return 7.5625 * a * a + 0.984375
         end
+    end,
+    Elastic = function(a)
+        local p = 0.3
+        return -(2 ^ (10 * (a - 1))) * math.sin((a - 1 - p / 4) * (2 * math.pi) / p)
+    end,
+}
+
+local function applyEasing(alpha, easingSettings)
+    local style = easingSettings["Style"] or "Linear"
+    local easingFunction = easingFunctions[style]
+    return easingFunction and easingFunction(alpha) or alpha
+end
+
+local function GetClosestPointOnSphere(part, refPosition)
+    local center = part.Position
+    local radius = part.Size.Magnitude * 0.5
+    local direction = (refPosition - center).Unit
+    return center + direction * math.min((refPosition - center).Magnitude, radius)
+end
+
+local function GetClosestPointOnBox(part, refPosition)
+    local localSpacePoint = part.CFrame:PointToObjectSpace(refPosition)
+    local halfSize = part.Size * 0.5
+    local clampedPoint = Vector3.new(
+        math.clamp(localSpacePoint.X, -halfSize.X, halfSize.X),
+        math.clamp(localSpacePoint.Y, -halfSize.Y, halfSize.Y),
+        math.clamp(localSpacePoint.Z, -halfSize.Z, halfSize.Z)
+    )
+    return part.CFrame:PointToWorldSpace(clampedPoint)
+end
+
+local function GetIntersectionPoint(part, refPosition)
+    local origin = Camera.CFrame.Position
+    local direction = (refPosition - origin).Unit * 5000
+    local ray = Ray.new(origin, direction)
+    local hit, position = workspace:FindPartOnRayWithIgnoreList(ray, {LocalPlayer.Character})
+    if hit and hit:IsDescendantOf(part.Parent) then
+        return position
     end
-end)
+    return part.Position
+end
 
-
-
-
-
-
-
-
-local skeletonSection = espTab:Section{
-    Name = "Skeleton Settings",
-    Side = "Left"
-}
-
-
-getgenv().esp.SkeletonEnabled = getgenv().esp.SkeletonEnabled ~= nil and getgenv().esp.SkeletonEnabled or false
-getgenv().esp.SkeletonColor = getgenv().esp.SkeletonColor or Color3.fromRGB(255, 255, 255)
-getgenv().esp.SkeletonMaxDistance = getgenv().esp.SkeletonMaxDistance or 1000
-getgenv().esp.SelfSkeleton = getgenv().esp.SelfSkeleton ~= nil and getgenv().esp.SelfSkeleton or false
-
-
-local skeleton_connections = skeleton_connections or {
-    {'UpperTorso', 'Head', Vector3.new(0, 0.4, 0), Vector3.new(0, -0.2, 0)},
-    {'UpperTorso', 'LowerTorso', Vector3.new(0, 0.4, 0)},
-    {'UpperTorso', 'RightUpperArm', Vector3.new(0, 0.4, 0)},
-    {'UpperTorso', 'LeftUpperArm', Vector3.new(0, 0.4, 0)},
-    {'RightUpperArm', 'RightHand'},
-    {'LeftUpperArm', 'LeftHand'},
-    {'LowerTorso', 'LeftUpperLeg'},
-    {'LeftUpperLeg', 'LeftFoot'},
-    {'LowerTorso', 'RightUpperLeg'},
-    {'RightUpperLeg', 'RightFoot'}
-}
-
-
-skeletonSection:Toggle{
-    Name = "Enable Skeleton",
-    Default = getgenv().esp.SkeletonEnabled,
-    Callback = function(value)
-        getgenv().esp.SkeletonEnabled = value
-    end
-}
-
-
-skeletonSection:Toggle{
-    Name = "Self Skeleton",
-    Default = getgenv().esp.SelfSkeleton,
-    Callback = function(value)
-        getgenv().esp.SelfSkeleton = value
-    end
-}
-
-skeletonSection:ColorPicker{
-    Name = "Skeleton Color",
-    Default = getgenv().esp.SkeletonColor,
-    Callback = function(color)
-        getgenv().esp.SkeletonColor = color
-    end
-}
-
-skeletonSection:Slider{
-    Name = "Max Distance",
-    Min = 1,
-    Max = 1000,
-    Default = getgenv().esp.SkeletonMaxDistance,
-    Callback = function(value)
-        getgenv().esp.SkeletonMaxDistance = value
-    end
-}
-
-
-function player:RenderSkeleton(data)
-    if not getgenv().esp.SkeletonEnabled then
-        if self.skeletonLines then
-            for _, line in ipairs(self.skeletonLines) do
-                line.Visible = false
-            end
+local function advancedClosestPoint(part, refPosition, mode)
+    if mode == "Normal" then
+        if not Mouse then
+            warn("Mouse is not available for 'Normal' mode")
+            return part.Position
         end
-        return
-    end
 
-    if data.character == Players.LocalPlayer.Character and not getgenv().esp.SelfSkeleton then
-        if self.skeletonLines then
-            for _, line in ipairs(self.skeletonLines) do
-                line.Visible = false
-            end
-        end
-        return
-    end
+        local RaycastParamsClosestPoint = RaycastParams.new()
+        RaycastParamsClosestPoint.FilterType = Enum.RaycastFilterType.Whitelist
+        RaycastParamsClosestPoint.FilterDescendantsInstances = { part }
 
-    if not skeleton_connections or type(skeleton_connections) ~= "table" then
-        warn("skeleton_connections table is missing or invalid")
-        return
-    end
+        local MouseRayOrigin = Camera.CFrame.Position
+        local MouseRayDirection = (Mouse.Hit.Position - MouseRayOrigin).Unit
+        local MouseRay = MouseRayOrigin + (MouseRayDirection * (part.Position - MouseRayOrigin).Magnitude)
 
-    if not self.skeletonLines then
-        self.skeletonLines = {}
-        for _ = 1, #skeleton_connections do
-            local line = Drawing.new("Line")
-            line.Thickness = 1
-            line.Visible = false
-            table.insert(self.skeletonLines, line)
-        end
-    end
+        local Origin = (MouseRay.Y >= (part.Position - part.Size / 2).Y and MouseRay.Y <= (part.Position + part.Size / 2).Y)
+            and (part.Position + Vector3.new(0, -part.Position.Y + MouseRay.Y, 0))
+            or part.Position
 
-    if data.distance > getgenv().esp.SkeletonMaxDistance then
-        for _, line in ipairs(self.skeletonLines) do
-            line.Visible = false
-        end
-        return
-    end
-
-    for idx, connection in ipairs(skeleton_connections) do
-        local partA = data.character:FindFirstChild(connection[1])
-        local partB = data.character:FindFirstChild(connection[2])
-
-        if partA and partB then
-            local posA, visibleA = workspace.CurrentCamera:WorldToViewportPoint(partA.Position + (connection[3] or Vector3.new()))
-            local posB, visibleB = workspace.CurrentCamera:WorldToViewportPoint(partB.Position + (connection[4] or Vector3.new()))
-
-            local line = self.skeletonLines[idx]
-            if visibleA and visibleB then
-                line.From = Vector2.new(posA.X, posA.Y)
-                line.To = Vector2.new(posB.X, posB.Y)
-                line.Color = getgenv().esp.SkeletonColor
-                line.Visible = true
-            else
-                line.Visible = false
-            end
+        local Raycast = workspace:Raycast(MouseRay, (Origin - MouseRay), RaycastParamsClosestPoint)
+        return Raycast and Raycast.Position or Mouse.Hit.Position
+    elseif mode == "Sphere" then
+        return GetClosestPointOnSphere(part, refPosition)
+    elseif mode == "Box" then
+        return GetClosestPointOnBox(part, refPosition)
+    elseif mode == "Ray" then
+        return GetIntersectionPoint(part, refPosition)
+    elseif mode == "Hybrid" then
+        local spherePoint = GetClosestPointOnSphere(part, refPosition)
+        local boxPoint = GetClosestPointOnBox(part, refPosition)
+        return (spherePoint + boxPoint) / 2
+    elseif mode == "CenterMass" then
+        return part.Position
+    elseif mode == "Smart" then
+        if WallCheck(part.Position, {LocalPlayer.Character}) then
+            return GetClosestPointOnSphere(part, refPosition)
         else
-            if self.skeletonLines[idx] then
-                self.skeletonLines[idx].Visible = false
-            end
+            return GetClosestPointOnBox(part, refPosition)
         end
-    end
-end
-
-
-for _, playerInstance in ipairs(Players:GetPlayers()) do
-    if not getgenv().players[playerInstance] then
-        getgenv().esp["NewPlayer"](playerInstance)
+    elseif mode == "VelocityPrediction" then
+        if part.Velocity then
+            return part.Position + (part.Velocity * 0.1)
+        else
+            return part.Position
+        end
     else
-        getgenv().players[playerInstance].RenderSkeleton = player.RenderSkeleton
+        return part.Position
     end
 end
 
-
-RunService.RenderStepped:Connect(function()
-    for _, playerObj in pairs(getgenv().players or {}) do
-        if playerObj and type(playerObj.RenderSkeleton) == "function" and validatePlayerData(playerObj) then
-            local data = playerObj:Check()
-            if data then
-                playerObj:RenderSkeleton(data)
-            end
-        end
+local function getClosestBodyPartAim(plr)
+    local settings = Vnlyisanigger["Camlock"]["ClosestPoint"]
+    if not settings or not settings["Enabled"] then
+        local character = plr and plr.Character
+        if not character then return nil end
+        local targetPart = character:FindFirstChild(settings["Hitpart"] or "Head")
+        return targetPart and targetPart.Position or nil
     end
-end)
 
+    local mode = settings["Mode"]
+    local refPosition = Camera.CFrame.Position
+    local mousePosition = UserInputService:GetMouseLocation()
+    local bestPart = nil
+    local bestDistance = math.huge
 
+    local character = plr.Character
+    if not character then return nil end
 
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and table.find(settings["SelectedBones"], part.Name) then
+            local closestPoint = advancedClosestPoint(part, refPosition, mode)
+            local screenPoint, onScreen = Camera:WorldToViewportPoint(closestPoint)
+            if onScreen then
+                local dx = mousePosition.X - screenPoint.X
+                local dy = mousePosition.Y - screenPoint.Y
+                local distance = math.sqrt(dx * dx + dy * dy)
 
-
-RunService.RenderStepped:Connect(function()
-    for _, playerObj in pairs(getgenv().players or {}) do
-        if playerObj and type(playerObj.RenderSkeleton) == "function" then
-            local data = playerObj:Check()
-            if data and data.character and data.character:FindFirstChild("HumanoidRootPart") then
-                local headPart = data.character:FindFirstChild("Head") or data.character.HumanoidRootPart
-                local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPart.Position)
-                local distance = (workspace.CurrentCamera.CFrame.Position - headPart.Position).Magnitude
-
-                if onScreen and distance <= getgenv().esp.SkeletonMaxDistance then
-
-                    if type(playerObj.RenderText) == "function" then
-                        playerObj:RenderText(data)
-                    end
-                    if type(playerObj.RenderBox) == "function" then
-                        playerObj:RenderBox(data)
-                    end
-                    if type(playerObj.RenderSkeleton) == "function" then
-                        playerObj:RenderSkeleton(data)
-                    end
-                else
-
-                    if playerObj.textDrawing then
-                        playerObj.textDrawing.Visible = false
-                    end
-                    if playerObj.boxDrawing then
-                        playerObj.boxDrawing.Visible = false
-                    end
-                    if playerObj.cornerDrawings then
-                        for _, corner in ipairs(playerObj.cornerDrawings) do
-                            corner.Visible = false
-                        end
-                    end
-                    if playerObj.skeletonLines then
-                        for _, line in ipairs(playerObj.skeletonLines) do
-                            line.Visible = false
-                        end
-                    end
-                end
-            else
-
-                if playerObj.textDrawing then
-                    playerObj.textDrawing.Visible = false
-                end
-                if playerObj.boxDrawing then
-                    playerObj.boxDrawing.Visible = false
-                end
-                if playerObj.cornerDrawings then
-                    for _, corner in ipairs(playerObj.cornerDrawings) do
-                        corner.Visible = false
-                    end
-                end
-                if playerObj.skeletonLines then
-                    for _, line in ipairs(playerObj.skeletonLines) do
-                        line.Visible = false
-                    end
+                if distance < bestDistance then
+                    bestDistance = distance
+                    bestPart = closestPoint
                 end
             end
         end
     end
-end)
 
+    return bestPart
+end
 
+local function applyPrediction(position, plr)
+    if not Vnlyisanigger["Camlock"]["Prediction"]["Enabled"] then
+        return position
+    end
 
+    local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return position
+    end
 
+    local predictionX = tonumber(Vnlyisanigger["Camlock"]["Prediction"]["X"]) or 0
+    local predictionY = tonumber(Vnlyisanigger["Camlock"]["Prediction"]["Y"]) or 0
 
-RunService.RenderStepped:Connect(function()
-    for _, playerObj in pairs(getgenv().players or {}) do
-        if playerObj and type(playerObj.RenderSkeleton) == "function" then
-            local success, data = pcall(function() return playerObj:Check() end)
-            if success and data and data.character then
-                local humanoidRootPart = data.character:FindFirstChild("HumanoidRootPart")
-                if not humanoidRootPart then
+    local velocity = hrp.Velocity
+    return position + Vector3.new(
+        velocity.X * predictionX,
+        velocity.Y * predictionY,
+        0
+    )
+end
 
-                    task.spawn(function()
-                        local timeout = 0
-                        while not data.character:FindFirstChild("HumanoidRootPart") and timeout < 3 do
-                            task.wait(0.1)
-                            timeout = timeout + 0.1
-                        end
-                    end)
-                end
+local function smoothLookAt(targetPosition)
+    local currentCFrame = Camera.CFrame
+    local cameraPosition = currentCFrame.Position
 
-                local headPart = data.character:FindFirstChild("Head") or data.character:FindFirstChild("HumanoidRootPart")
-                if headPart then
-                    local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(headPart.Position)
-                    local distance = (workspace.CurrentCamera.CFrame.Position - headPart.Position).Magnitude
+    if not Vnlyisanigger["Camlock"]["Smoothness"]["Enabled"] then
+        Camera.CFrame = CFrame.lookAt(cameraPosition, targetPosition)
+        return
+    end
 
-                    if onScreen and distance <= getgenv().esp.SkeletonMaxDistance then
+    local smoothX = math.max(Vnlyisanigger["Camlock"]["Smoothness"]["X"] or 1, 0.01)
+    local smoothY = math.max(Vnlyisanigger["Camlock"]["Smoothness"]["Y"] or 1, 0.01)
 
-                        if type(playerObj.RenderText) == "function" then
-                            playerObj:RenderText(data)
-                        end
-                        if type(playerObj.RenderBox) == "function" then
-                            playerObj:RenderBox(data)
-                        end
-                        if type(playerObj.RenderSkeleton) == "function" then
-                            playerObj:RenderSkeleton(data)
-                        end
-                    else
+    local factorX = 1 / smoothX
+    local factorY = 1 / smoothY
 
-                        if playerObj.textDrawing then
-                            playerObj.textDrawing.Visible = false
-                        end
-                        if playerObj.boxDrawing then
-                            playerObj.boxDrawing.Visible = false
-                        end
-                        if playerObj.cornerDrawings then
-                            for _, corner in ipairs(playerObj.cornerDrawings) do
-                                corner.Visible = false
-                            end
-                        end
-                        if playerObj.skeletonLines then
-                            for _, line in ipairs(playerObj.skeletonLines) do
-                                line.Visible = false
-                            end
-                        end
-                    end
-                end
-            else
+    local targetDirection = (targetPosition - cameraPosition).Unit
+    local targetX, targetY, targetZ = targetDirection.X, targetDirection.Y, targetDirection.Z
 
-                if playerObj.textDrawing then
-                    playerObj.textDrawing.Visible = false
-                end
-                if playerObj.boxDrawing then
-                    playerObj.boxDrawing.Visible = false
-                end
-                if playerObj.cornerDrawings then
-                    for _, corner in ipairs(playerObj.cornerDrawings) do
-                        corner.Visible = false
-                    end
-                end
-                if playerObj.skeletonLines then
-                    for _, line in ipairs(playerObj.skeletonLines) do
-                        line.Visible = false
+    local currentDirection = currentCFrame.LookVector
+    local currentX, currentY, currentZ = currentDirection.X, currentDirection.Y, currentDirection.Z
+
+    local lerpX = currentX + (targetX - currentX) * factorX
+    local lerpY = currentY + (targetY - currentY) * factorY
+    local lerpZ = currentZ + (targetZ - currentZ) * math.max(factorX, factorY)
+
+    local smoothedDirection = Vector3.new(lerpX, lerpY, lerpZ).Unit
+    Camera.CFrame = CFrame.lookAt(cameraPosition, cameraPosition + smoothedDirection)
+end
+
+local function camlockTarget(plr)
+    if not actualCamlockActive or not isValidTarget(plr) then return end
+    local aimPosition = getClosestBodyPartAim(plr)
+    if aimPosition then
+        local predictedPosition = applyPrediction(aimPosition, plr)
+        smoothLookAt(predictedPosition)
+    end
+end
+
+local function getNewTargetFromMouse()
+    local mp = UserInputService:GetMouseLocation()
+    local closestDist = math.huge
+    local bestPlayer = nil
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if isValidTarget(plr) then
+            local c = plr.Character
+            local hrp = c and c:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local sp, visible = Camera:WorldToViewportPoint(hrp.Position)
+                if visible then
+                    local dx, dy = mp.X - sp.X, mp.Y - sp.Y
+                    local dist = math.sqrt(dx * dx + dy * dy)
+                    if dist < closestDist then
+                        closestDist = dist
+                        bestPlayer = plr
                     end
                 end
             end
         end
     end
-end)
-
-
-
-
-
+    return bestPlayer
+end
 
 RunService.RenderStepped:Connect(function()
-    for _, playerObj in pairs(getgenv().players or {}) do
-        if playerObj and type(playerObj.RenderSkeleton) == "function" then
-            local success, data = pcall(function() return playerObj:Check() end)
-            if success and data and data.character then
-                local character = data.character
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-
-
-                if not humanoid or not humanoidRootPart then
-
-                    task.spawn(function()
-                        local timeout = 0
-                        while (not character:FindFirstChildOfClass("Humanoid") or not character:FindFirstChild("HumanoidRootPart")) and timeout < 3 do
-                            task.wait(0.1)
-                            timeout = timeout + 0.1
-                        end
-
-
-                        if not character:FindFirstChildOfClass("Humanoid") or not character:FindFirstChild("HumanoidRootPart") then
-                            if playerObj.textDrawing then
-                                playerObj.textDrawing.Visible = false
-                            end
-                            if playerObj.boxDrawing then
-                                playerObj.boxDrawing.Visible = false
-                            end
-                            if playerObj.skeletonLines then
-                                for _, line in ipairs(playerObj.skeletonLines) do
-                                    line.Visible = false
-                                end
-                            end
-                        end
-                    end)
-                end
-            end
+    if Vnlyisanigger["Camlock"]["Checks"]["FirstPersonOnly"] then
+        if isInFirstPerson() then
+            actualCamlockActive = userWantsCamlock
+        else
+            actualCamlockActive = false
         end
+    else
+        actualCamlockActive = userWantsCamlock
+    end
+
+    if not actualCamlockActive then return end
+
+    if not currentTarget or not isValidTarget(currentTarget) then
+        if not Vnlyisanigger["Camlock"]["StickyAim"] or not currentTarget then
+            currentTarget = getNewTargetFromMouse()
+        end
+    end
+
+    if currentTarget then
+        camlockTarget(currentTarget)
     end
 end)
 
+--//
 
-
-
-
-
--- esp
-
+UI["2"].Visible = true
