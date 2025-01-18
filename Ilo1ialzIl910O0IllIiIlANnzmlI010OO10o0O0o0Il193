@@ -58,6 +58,35 @@ injectBypass()
 
 --// Bypass DO NOT REMOVE
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 --// Optimizations
 
 
@@ -117,6 +146,18 @@ end
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 --// Services
 
 local Players = game:GetService("Players")
@@ -132,6 +173,11 @@ local interval = 1 / maxFPS
 local Mouse = LocalPlayer:GetMouse()
 local originalSizes = {}
 local https = game:GetService("HttpService")
+local HitboxWhitelistedUserIds = {}
+local HitboxOriginalSizes = {}
+local HitboxCurrentTarget = nil
+local HitboxToggle = false
+local HitboxLastUpdateTime = 0
 
 --// Logging
 
@@ -182,10 +228,6 @@ local res = request(
 }
 )
 
--- logging
-
-
-
 --// Hitbox Whitelist
 
 local whitelistedUserIds = {7614534106, 105336116, 3094007262, 5841189059, 5389510301, 204752563, 3913320}
@@ -231,6 +273,7 @@ local bodyParts = {
     "RightFoot",
     "RightUpperLeg"
 }
+
 
 -- Initialize Settings
 
@@ -294,36 +337,31 @@ Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {
     },
 }
 
-
-
-
-
-Vnlyisanigger["Hitbox"] = Vnlyisanigger["Hitbox"] or {}
-Vnlyisanigger["Hitbox"]["Checks"] = Vnlyisanigger["Hitbox"]["Checks"] or {
-    CrewCheck = false,
-    KnockCheck = false,
-    WallCheck = false,
-    GrabbedCheck = false,
-    VisibleCheck = false,
+Vnlyisanigger = Vnlyisanigger or {}
+Vnlyisanigger["Hitbox"] = Vnlyisanigger["Hitbox"] or {
+    Enabled = false,
+    Keybind = "X",
+    AutoTarget = false,
+    GunDetection = false,
+    EveryoneMode = false,
+    BoxVisual = false,
+    RemoveBlood = false,
+    Checks = {
+        CrewCheck = false,
+        KnockCheck = false,
+        WallCheck = false,
+        GrabbedCheck = false,
+        VisibleCheck = false
+    },
+    GunCategories = {
+        Shotgun = {SizeX = 12, SizeY = 8, SizeZ = 8},
+        Pistol = {SizeX = 8, SizeY = 6, SizeZ = 6},
+        Other = {SizeX = 10, SizeY = 10, SizeZ = 10}
+    }
 }
-Vnlyisanigger["Hitbox"]["GunCategories"] = Vnlyisanigger["Hitbox"]["GunCategories"] or {
-    Shotgun = {SizeX = 12, SizeY = 8, SizeZ = 8},
-    Pistol = {SizeX = 8, SizeY = 6, SizeZ = 6},
-    Other = {SizeX = 10, SizeY = 10, SizeZ = 10},
-}
-Vnlyisanigger["Hitbox"]["Enabled"] = Vnlyisanigger["Hitbox"]["Enabled"] or false
-Vnlyisanigger["Hitbox"]["SizeX"] = Vnlyisanigger["Hitbox"]["SizeX"] or 5
-Vnlyisanigger["Hitbox"]["SizeY"] = Vnlyisanigger["Hitbox"]["SizeY"] or 5
-Vnlyisanigger["Hitbox"]["SizeZ"] = Vnlyisanigger["Hitbox"]["SizeZ"] or 5
-Vnlyisanigger["Hitbox"]["BoxVisual"] = Vnlyisanigger["Hitbox"]["BoxVisual"] or false
-Vnlyisanigger["Hitbox"]["GunDetection"] = Vnlyisanigger["Hitbox"]["GunDetection"] or false
-Vnlyisanigger["Hitbox"]["EveryoneMode"] = Vnlyisanigger["Hitbox"]["EveryoneMode"] or false
-Vnlyisanigger["Hitbox"]["AutoTarget"] = Vnlyisanigger["Hitbox"]["AutoTarget"] or false
-Vnlyisanigger["Hitbox"]["RemoveBlood"] = Vnlyisanigger["Hitbox"]["RemoveBlood"] or false
-
-
 
 --// Configuration
+
 
 local config = {
     path = "slicelol/dahood/config/",
@@ -331,6 +369,17 @@ local config = {
     config_name = ""
 }
 
+if not isfolder("slicelol") then
+    makefolder("slicelol")
+end
+
+if not isfolder("slicelol/dahood") then
+    makefolder("slicelol/dahood")
+end
+
+if not isfolder(config.path) then
+    makefolder(config.path)
+end
 
 local function getConfigFiles(path)
     local config_list = {} 
@@ -351,11 +400,9 @@ local function getConfigFiles(path)
     return config_list
 end
 
-
-
 function config:get_list()
     local config_list = {}
-    local config_path = "slicelol/dahood/config/"
+    local config_path = config.path
     if not isfolder(config_path) then
         makefolder(config_path)
     end
@@ -370,8 +417,8 @@ function config:get_list()
     return config_list
 end
 
-
 local loading_config = false
+
 
 --// UI Library
 
@@ -569,6 +616,7 @@ generalSection:Toggle({
     callback = function(bool)
         Vnlyisanigger["Hitbox"]["Enabled"] = bool
         if not bool then
+
             for _, player in ipairs(Players:GetPlayers()) do
                 resetHitboxSize(player)
             end
@@ -608,9 +656,9 @@ toggleSection:Toggle({
     title = "Remove Blood Effects",
     default = false,
     callback = function(bool)
-        Vnlyisanigger["Hitbox"]["RemoveBlood"] = bool
+        HitboxExpander.Config.RemoveBlood = bool
         if bool then
-            initializeBloodEffectHandler()
+            HitboxInitializeBloodEffectHandler()
         end
     end
 })
@@ -618,22 +666,15 @@ toggleSection:Toggle({
 
 
 local checksSection = hitboxPage:Section("Checks", "left")
-for _, check in pairs({
-    {title = "Crew Check", key = "HitboxCrewCheck"},
-    {title = "Knock Check", key = "HitboxKnockCheck"},
-    {title = "Wall Check", key = "HitboxWallCheck"},
-    {title = "Grabbed Check", key = "HitboxGrabbedCheck"},
-    {title = "Visible Check", key = "HitboxVisibleCheck"},
-}) do
+for _, check in pairs({"CrewCheck", "KnockCheck", "WallCheck", "GrabbedCheck", "VisibleCheck"}) do
     checksSection:Toggle({
-        title = check.title,
-        default = Vnlyisanigger["Hitbox"]["Checks"][check.key],
+        title = check,
+        default = false,
         callback = function(bool)
-            Vnlyisanigger["Hitbox"]["Checks"][check.key] = bool
+            Vnlyisanigger["Hitbox"]["Checks"][check] = bool
         end
     })
 end
-
 local function createSliders(section, category)
     Vnlyisanigger["Hitbox"]["GunCategories"][category] = Vnlyisanigger["Hitbox"]["GunCategories"][category] or {
         SizeX = 5,
@@ -653,12 +694,14 @@ local function createSliders(section, category)
     end
 end
 
+
 local shotgunSection = hitboxPage:Section("Shotgun Hitbox Size", "right")
 createSliders(shotgunSection, "Shotgun")
 local pistolSection = hitboxPage:Section("Pistol Hitbox Size", "right")
 createSliders(pistolSection, "Pistol")
 local otherSection = hitboxPage:Section("Other Guns Hitbox Size", "right")
 createSliders(otherSection, "Other")
+
 
 --// Hitbox Functions
 
@@ -670,8 +713,9 @@ local function HitboxWallCheck(pos, ignore)
     return hitPart == nil 
 end
 
+
 local function HitboxDeleteBloodEffects(character)
-    if not character or not character:IsA("Model") then return end
+    if not character then return end
     for _, descendant in pairs(character:GetDescendants()) do
         if descendant:IsA("ParticleEmitter") and descendant.Name == "BloodParticle" then
             descendant:Destroy()
@@ -679,40 +723,32 @@ local function HitboxDeleteBloodEffects(character)
     end
 end
 
-
 local function HitboxMonitorBloodEffects()
+
     Players.PlayerAdded:Connect(function(player)
         player.CharacterAdded:Connect(function(character)
-            if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
+            if HitboxExpander.Config.RemoveBlood then
                 HitboxDeleteBloodEffects(character)
             end
         end)
     end)
-end
+
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Character then
             HitboxDeleteBloodEffects(player.Character)
         end
-
         player.CharacterAdded:Connect(function(character)
-            if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
+            if HitboxExpander.Config.RemoveBlood then
                 HitboxDeleteBloodEffects(character)
             end
         end)
     end
+end
 
-
-local function HitboxRemoveBloodFromExistingPlayers()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character then
-            HitboxDeleteBloodEffects(player.Character)
-        end
-        player.CharacterAdded:Connect(function(character)
-            if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
-                HitboxDeleteBloodEffects(character)
-            end
-        end)
+local function HitboxInitializeBloodEffectHandler()
+    if HitboxExpander.Config.RemoveBlood then
+        HitboxMonitorBloodEffects()
     end
 end
 
@@ -725,17 +761,15 @@ local function HitboxGetSizeConfig(toolName, gunDetection)
     return {SizeX = 8, SizeY = 7, SizeZ = 5}
 end
 
-local function HitboxIsValidTarget(player)
-    if not player or not player:IsA("Player") or player == LocalPlayer then
-        return false 
-    end
 
+
+local function HitboxIsValidTarget(player)
+    if not player or player == LocalPlayer or table.find(whitelistedUserIds, player.UserId) then return false end
     local character = player.Character
-    if not character or not character:IsA("Model") then
-        return false 
-    end
+    if not character then return false end
 
     local checks = Vnlyisanigger["Hitbox"]["Checks"]
+
 
     if checks["CrewCheck"] then
         local targetData = player:FindFirstChild("DataFolder")
@@ -743,24 +777,19 @@ local function HitboxIsValidTarget(player)
         if targetData and localData then
             local targetCrew = targetData.Information and targetData.Information.Crew
             local localCrew = localData.Information and localData.Information.Crew
-            if targetCrew and localCrew and (targetCrew.Value == localCrew.Value) then
-                return false 
-            end
+            if targetCrew and localCrew and (targetCrew.Value == localCrew.Value) then return false end
         end
     end
 
 
     if checks["KnockCheck"] then
         local bodyEffects = character:FindFirstChild("BodyEffects")
-        if bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value then
-            return false 
-        end
+        if bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects["K.O"].Value then return false end
     end
 
+
     if checks["GrabbedCheck"] then
-        if character:FindFirstChild("GRABBING_CONSTRAINT") then
-            return false 
-        end
+        if character:FindFirstChild("GRABBING_CONSTRAINT") then return false end
     end
 
 
@@ -768,72 +797,68 @@ local function HitboxIsValidTarget(player)
         local hrp = character:FindFirstChild("HumanoidRootPart")
         if hrp then
             local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-            if not onScreen then
-                return false 
-            end
+            if not onScreen then return false end
         end
     end
 
 
     if checks["WallCheck"] then
         local hrp = character:FindFirstChild("HumanoidRootPart")
-        if hrp and not HitboxWallCheck(hrp.Position, {LocalPlayer.Character, character}) then
-            return false 
+        if hrp then
+            if not HitboxWallCheck(hrp.Position, {LocalPlayer.Character, character}) then return false end
         end
     end
 
-    return true 
+    return true
 end
 
-local originalSizes = {}
 
-local function HitboxResetSize(target)
-    if not target or not target:IsA("Player") then return end
-    local character = target.Character
-    if not character or not character:IsA("Model") then return end
+local HitboxOriginalSizes = {}
+
+
+local function HitboxUpdateSize(player, sizeConfig, boxVisual)
+    if not player or not HitboxIsValidTarget(player) then
+        HitboxResetSize(player)
+        return
+    end
+
+    local character = player.Character
+    if not character then return end
 
     local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp and originalSizes[target] then
-        hrp.Size = originalSizes[target] 
-        originalSizes[target] = nil 
+    if hrp then
+        if not HitboxOriginalSizes[player] then
+            HitboxOriginalSizes[player] = hrp.Size
+        end
+
+        hrp.Size = Vector3.new(sizeConfig.SizeX, sizeConfig.SizeY, sizeConfig.SizeZ)
+        hrp.Transparency = boxVisual and 0.5 or 1
+        hrp.Material = boxVisual and Enum.Material.ForceField or Enum.Material.Plastic
+        hrp.CanCollide = false
+    end
+end
+
+
+local function HitboxResetSize(player)
+    if not player or not player:IsA("Player") then return end
+    local character = player.Character
+    if not character then return end
+
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp and HitboxOriginalSizes[player] then
+        hrp.Size = HitboxOriginalSizes[player]
+        HitboxOriginalSizes[player] = nil
         hrp.Transparency = 1
         hrp.Material = Enum.Material.Plastic
         hrp.CanCollide = true
     end
 end
 
-local function HitboxUpdateSize(target, sizeConfig, boxVisual)
-    if not target or not HitboxIsValidTarget(target) then
-        HitboxResetSize(target) 
-        return
-    end
-
-    local character = target.Character
-    if not character then return end
-
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        if not originalSizes[target] then
-            originalSizes[target] = hrp.Size 
-        end
-
-        hrp.Size = Vector3.new(sizeConfig.SizeX, sizeConfig.SizeY, sizeConfig.SizeZ)
-
-        if boxVisual then
-            hrp.Transparency = 0.5
-            hrp.Material = Enum.Material.ForceField
-        else
-            hrp.Transparency = 1
-            hrp.Material = Enum.Material.Plastic
-        end
-
-        hrp.CanCollide = false 
-    end
-end
 
 local function HitboxGetNewTarget()
     local closestDistance = math.huge
     local bestTarget = nil
+
     for _, player in ipairs(Players:GetPlayers()) do
         if HitboxIsValidTarget(player) then
             local character = player.Character
@@ -859,15 +884,15 @@ end
 local function HitboxApplySettings(players, boxVisual, gunDetection, everyoneMode, autoTarget)
     local equippedTool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local toolName = equippedTool and equippedTool.Name or nil
-    local gunSize = HitboxGetSizeConfig(toolName, gunDetection)
+    local sizeConfig = HitboxGetSizeConfig(toolName, gunDetection)
     local closestPlayer = autoTarget and HitboxGetNewTarget() or nil
 
     for _, player in ipairs(players) do
-        if player and player:IsA("Player") and player ~= LocalPlayer and (everyoneMode or HitboxIsValidTarget(player)) then
+        if player ~= LocalPlayer and (everyoneMode or HitboxIsValidTarget(player)) then
             if autoTarget and player ~= closestPlayer then
                 HitboxResetSize(player)
             else
-                HitboxUpdateSize(player, gunSize, boxVisual)
+                HitboxUpdateSize(player, sizeConfig, boxVisual)
             end
         else
             HitboxResetSize(player)
@@ -876,44 +901,30 @@ local function HitboxApplySettings(players, boxVisual, gunDetection, everyoneMod
 end
 
 
-local function initializeBloodEffectHandler()
-    if Vnlyisanigger["Hitbox"]["RemoveBlood"] then
-        HitboxMonitorBloodEffects() 
-        HitboxRemoveBloodFromExistingPlayers() 
-    end
-end
-
-
-local function getVisiblePlayers()
-    local visiblePlayers = {}
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and HitboxIsValidTarget(player) then
-            local character = player.Character
-            if character and character:IsA("Model") then
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local _, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                    if onScreen then
-                        table.insert(visiblePlayers, player)
-                    end
+local function handleBloodEffects(players, removeBlood)
+    if not removeBlood then return end
+    for _, player in ipairs(players) do
+        local character = player.Character
+        if character then
+            for _, descendant in pairs(character:GetDescendants()) do
+                if descendant:IsA("ParticleEmitter") and descendant.Name == "BloodParticle" then
+                    descendant:Destroy()
                 end
             end
         end
     end
-    return visiblePlayers
 end
-
-
 
 RunService.RenderStepped:Connect(function()
     if Vnlyisanigger["Hitbox"]["Enabled"] then
-        local players = getVisiblePlayers()
-        local boxVisual = Vnlyisanigger["Hitbox"]["BoxVisual"]
-        local gunDetection = Vnlyisanigger["Hitbox"]["GunDetection"]
-        local everyoneMode = Vnlyisanigger["Hitbox"]["EveryoneMode"]
-        local autoTarget = Vnlyisanigger["Hitbox"]["AutoTarget"]
-
-        HitboxApplySettings(players, boxVisual, gunDetection, everyoneMode, autoTarget)
+        local players = Players:GetPlayers()
+        HitboxApplySettings(
+            players,
+            Vnlyisanigger["Hitbox"]["BoxVisual"],
+            Vnlyisanigger["Hitbox"]["GunDetection"],
+            Vnlyisanigger["Hitbox"]["EveryoneMode"],
+            Vnlyisanigger["Hitbox"]["AutoTarget"]
+        )
     else
         for _, player in ipairs(Players:GetPlayers()) do
             HitboxResetSize(player)
