@@ -28,8 +28,13 @@ if not isfolder(CheatName.. "/configs/da_hood") then
     makefolder(CheatName .. "/configs/da_hood")
 end
 
--- make services global. self-explanatory.
+-- 3. Global Services Initialization
 getgenv().playerService = game:GetService("Players")
+-- Localized access to CoreGui without storing in getgenv
+do
+    local CoreGui = game:GetService("CoreGui")
+    -- Use CoreGui directly wherever needed
+end
 getgenv().tweenService = game:GetService("TweenService")
 getgenv().inputService = game:GetService("UserInputService")
 getgenv().rsService = game:GetService("RunService")
@@ -40,6 +45,7 @@ getgenv().userSettings = UserSettings()
 getgenv().userGameSettings = userSettings:GetService("UserGameSettings")
 getgenv().inputManager = game:GetService("VirtualInputManager")
 
+-- LocalPlayer and Mouse initialization
 local LocalPlayer = playerService.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
