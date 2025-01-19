@@ -75,6 +75,7 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local https = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
+local ToolNameToIgnore = ""
 local Terrain = Workspace:FindFirstChildOfClass("Terrain")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
@@ -508,6 +509,16 @@ miscSection:Toggle({
 })
 
 miscSection:Toggle({
+    title = "Remove Gun Delay (50/50)",
+    default = false,
+    callback = function(bool)
+        setRemoveMuzzleState(bool)
+    end
+})
+
+
+
+miscSection:Toggle({
     title = "Preserve FPS When Tabbed Out",
     default = Vnlyisanigger["Settings"]["PreserveFPS"],
     callback = function(bool)
@@ -516,6 +527,70 @@ miscSection:Toggle({
 })
 
 --// Misc Functions
+
+
+local ToggleRemoveMuzzle = false
+local TargetTools = { 
+    ["Revolver"] = true,
+    ["Double-Barrel SG"] = true,
+    ["TacticalSG"] = true
+}
+
+local function removeMuzzleFromTool(tool)
+    if not ToggleRemoveMuzzle or not tool or not tool:IsA("Tool") or not TargetTools[tool.Name] then return end
+
+    for _, descendant in ipairs(tool:GetDescendants()) do
+        if descendant:IsA("Attachment") and descendant.Name:lower() == "muzzle" then
+            descendant:Destroy()
+        end
+    end
+end
+
+local function monitorTools()
+    local character = LocalPlayer.Character
+    if character then
+        for _, tool in ipairs(character:GetChildren()) do
+            if tool:IsA("Tool") then
+                removeMuzzleFromTool(tool)
+            end
+        end
+
+        character.ChildAdded:Connect(function(child)
+            if child:IsA("Tool") then
+                removeMuzzleFromTool(child)
+            end
+        end)
+    end
+
+    for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            removeMuzzleFromTool(tool)
+        end
+    end
+
+    LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            removeMuzzleFromTool(child)
+        end
+    end)
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+    monitorTools()
+end)
+
+local function setRemoveMuzzleState(enabled)
+    ToggleRemoveMuzzle = enabled
+    if enabled then
+        monitorTools() 
+    else
+    end
+end
+
+
+setRemoveMuzzleState(true) 
+
+monitorTools()
 
 local function deleteBloodEffects(character)
     for _, descendant in ipairs(character:GetDescendants()) do
