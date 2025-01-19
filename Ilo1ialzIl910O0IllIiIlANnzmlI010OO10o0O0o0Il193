@@ -1,3 +1,12 @@
+if getgenv().ScriptInjected then
+    warn("[ ! ] Script already injected you fucking stupid nigger")
+    return
+end
+
+getgenv().ScriptInjected = true
+
+--// Double inject
+
 local function injectBypass()
     local OriginalGetFenv; 
     OriginalGetFenv = hookfunction(getrenv().getfenv, newcclosure(function(Level)
@@ -56,70 +65,125 @@ end
 
 injectBypass()
 
---// Bypass DO NOT REMOVE
+--// Bypass
+
+--// Services
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local https = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
+local Terrain = Workspace:FindFirstChildOfClass("Terrain")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local bulletRemovalConnection
+local maxFPS = 244
+local lowFPS = 10
+local interval = 1 / maxFPS
+local HitboxLastUpdateTime = 0
+local lastTick = tick()
+local temporaryData = {}
+local Mouse = LocalPlayer:GetMouse()
+local throttle = {}
+local HitboxWhitelistedUserIds = {}
+local originalSizes = {}
+local HitboxOriginalSizes = {}
+local RenderSteppedConnections = {}
+local HitboxOriginalParticles = {}
+local activeConnections = {}
+local preserveFPS = false
+local HitboxToggle = false
+local HitboxCurrentTarget = nil
 
 
 
+--//  Optimizations
+
+local function runPeriodically(interval, func)
+    task.spawn(function()
+        while task.wait(interval) do
+            pcall(func) 
+        end
+    end)
+end
+
+
+local function optimizeCharacter(character)
+    for _, child in ipairs(character:GetDescendants()) do
+        if child:IsA("ParticleEmitter") or child:IsA("Beam") or child:IsA("Trail") then
+            child.Enabled = false 
+        end
+    end
+end
+
+
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        optimizeCharacter(character)
+    end)
+end)
+
+for _, player in ipairs(Players:GetPlayers()) do
+    if player.Character then
+        optimizeCharacter(player.Character)
+    end
+    player.CharacterAdded:Connect(function(character)
+        optimizeCharacter(character)
+    end)
+end
+
+Lighting.GlobalShadows = false 
+Lighting.EnvironmentDiffuseScale = 0 
+Lighting.EnvironmentSpecularScale = 0 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
---// Optimizations
-
+if Terrain then
+    Terrain.WaterWaveSize = 0
+    Terrain.WaterWaveSpeed = 0
+    Terrain.WaterReflectance = 0
+    Terrain.WaterTransparency = 0
+end
 
 task.spawn(function()
-    while task.wait(60) do
-        local memoryUsageKB = gcinfo()
+    while task.wait(30) do 
         pcall(function()
             collectgarbage("collect")
         end)
     end
 end)
 
+local function clearUnusedReferences(refTable)
+    for key in pairs(refTable) do
+        refTable[key] = nil
+    end
+end
 
-local Players = game:GetService("Players")
-local cachedPlayers = Players:GetPlayers()
 
-Players.PlayerAdded:Connect(function(player)
-    table.insert(cachedPlayers, player)
+runPeriodically(30, function() 
+    clearUnusedReferences(temporaryData)
 end)
 
-Players.PlayerRemoving:Connect(function(player)
-    for i, p in ipairs(cachedPlayers) do
-        if p == player then
-            table.remove(cachedPlayers, i)
-            break
+local function disconnectConnection(conn)
+    if conn and conn.Connected then
+        conn:Disconnect()
+    end
+end
+
+local function trackConnection(conn)
+    table.insert(activeConnections, conn)
+end
+
+task.spawn(function()
+    while task.wait(60) do
+        for i, conn in ipairs(activeConnections) do
+            disconnectConnection(conn)
+            activeConnections[i] = nil 
         end
     end
 end)
-
-function getCachedPlayers()
-    return cachedPlayers
-end
-
 
 local function debounce(func, delay)
     local isCooldown = false
@@ -134,8 +198,6 @@ local function debounce(func, delay)
     end
 end
 
-
-local throttle = {}
 local function isThrottled(key, delay)
     if throttle[key] and os.clock() - throttle[key] < delay then
         return true
@@ -144,45 +206,19 @@ local function isThrottled(key, delay)
     return false
 end
 
+game:GetService("RunService").RenderStepped:Connect(function()
+    for _, func in ipairs(RenderSteppedConnections) do
+        pcall(func) 
+    end
+end)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
---// Services
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-local maxFPS = 244
-local lowFPS = 10
-local lastTick = tick()
-local preserveFPS = false
-local interval = 1 / maxFPS
-local Mouse = LocalPlayer:GetMouse()
-local originalSizes = {}
-local https = game:GetService("HttpService")
-local HitboxWhitelistedUserIds = {}
-local HitboxOriginalSizes = {}
-local HitboxCurrentTarget = nil
-local HitboxToggle = false
-local HitboxLastUpdateTime = 0
+local function registerRenderFunction(func)
+    table.insert(RenderSteppedConnections, func)
+end
 
 --// Logging
 
 web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" 
-
 
 local gam = game.PlaceId
 
@@ -302,7 +338,6 @@ Vnlyisanigger["Camlock"]["Easing"] = Vnlyisanigger["Camlock"]["Easing"] or {
     Direction = Enum.EasingDirection.InOut  
 }
 
-
 local Vnlyisanigger = Vnlyisanigger or {}
 Vnlyisanigger["Camlock"] = Vnlyisanigger["Camlock"] or {
     Enabled = false,
@@ -345,7 +380,7 @@ Vnlyisanigger["Hitbox"] = Vnlyisanigger["Hitbox"] or {
     GunDetection = false,
     EveryoneMode = false,
     BoxVisual = false,
-    RemoveBlood = false,
+    RemoveBloodEffects = false,
     Checks = {
         CrewCheck = false,
         KnockCheck = false,
@@ -361,7 +396,6 @@ Vnlyisanigger["Hitbox"] = Vnlyisanigger["Hitbox"] or {
 }
 
 --// Configuration
-
 
 local config = {
     path = "slicelol/dahood/config/",
@@ -419,7 +453,6 @@ end
 
 local loading_config = false
 
-
 --// UI Library
 
 local UserInterface = loadstring(game:HttpGet("https://raw.githubusercontent.com/vnlyvnlyvnly/misc/main/ui/drax"))()
@@ -439,6 +472,42 @@ local configSection = settingsPage:Section("Config Management", "left")
 --// Misc Section
 
 miscSection:Toggle({
+    title = "Remove Blood Effects",
+    default = false,
+    callback = function(enabled)
+        Vnlyisanigger["Hitbox"]["RemoveBloodEffects"] = enabled
+        if enabled then
+            initializeBloodEffectHandler()
+            handlePlayerBloodEffects()
+        else
+            disconnectBloodEffectHandler()
+        end
+    end
+})
+
+miscSection:Toggle({
+    title = "Remove Bullets",
+    default = false,
+    callback = function(bool)
+        Vnlyisanigger["Settings"]["RemoveBullets"] = bool
+        if bool then
+            if not Vnlyisanigger["Settings"].BulletRemovalConnection then
+                Vnlyisanigger["Settings"].BulletRemovalConnection = Workspace.DescendantAdded:Connect(function(descendant)
+                    if descendant:IsA("ParticleEmitter") or descendant:IsA("Trail") or descendant:IsA("Beam") then
+                        descendant.Enabled = false
+                    end
+                end)
+            end
+        else
+            if Vnlyisanigger["Settings"].BulletRemovalConnection then
+                Vnlyisanigger["Settings"].BulletRemovalConnection:Disconnect()
+                Vnlyisanigger["Settings"].BulletRemovalConnection = nil
+            end
+        end
+    end
+})
+
+miscSection:Toggle({
     title = "Preserve FPS When Tabbed Out",
     default = Vnlyisanigger["Settings"]["PreserveFPS"],
     callback = function(bool)
@@ -448,7 +517,79 @@ miscSection:Toggle({
 
 --// Misc Functions
 
+local function deleteBloodEffects(character)
+    for _, descendant in ipairs(character:GetDescendants()) do
+        if descendant.Name:lower():find("blood") and (descendant:IsA("ParticleEmitter") or descendant:IsA("Beam") or descendant:IsA("Trail") or descendant:IsA("Decal") or descendant:IsA("Sound")) then
+            descendant:Destroy()
+        end
+    end
+end
 
+local function deleteAllBloodEffects()
+    for _, service in ipairs({
+        workspace,
+        game:GetService("ReplicatedStorage"),
+        game:GetService("Lighting"),
+        game:GetService("Players"),
+        game:GetService("StarterPack"),
+        game:GetService("CoreGui"),
+        game:GetService("SoundService")
+    }) do
+        for _, descendant in ipairs(service:GetDescendants()) do
+            if descendant.Name:lower():find("BloodParticle") and (descendant:IsA("ParticleEmitter") or descendant:IsA("Beam") or descendant:IsA("Trail") or descendant:IsA("Decal") or descendant:IsA("Sound")) then
+                descendant:Destroy()
+            end
+        end
+    end
+end
+
+local function monitorBloodEffects()
+    for _, service in ipairs({
+        workspace,
+        game:GetService("ReplicatedStorage"),
+        game:GetService("Lighting"),
+        game:GetService("Players"),
+        game:GetService("StarterPack"),
+        game:GetService("CoreGui"),
+        game:GetService("SoundService")
+    }) do
+        service.DescendantAdded:Connect(function(descendant)
+            if descendant.Name:lower():find("blood") and (descendant:IsA("ParticleEmitter") or descendant:IsA("Beam") or descendant:IsA("Trail") or descendant:IsA("Decal") or descendant:IsA("Sound")) then
+                descendant:Destroy()
+            end
+        end)
+    end
+end
+
+
+local function initializeBloodEffectHandler()
+    deleteAllBloodEffects() 
+    monitorBloodEffects() 
+end
+
+local function handlePlayerBloodEffects()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Character then
+            deleteBloodEffects(player.Character)
+        end
+        player.CharacterAdded:Connect(function(character)
+            if Vnlyisanigger["Hitbox"]["RemoveBloodEffects"] then
+                deleteBloodEffects(character)
+            end
+        end)
+    end
+
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            if Vnlyisanigger["Hitbox"]["RemoveBloodEffects"] then
+                deleteBloodEffects(character)
+            end
+        end)
+    end)
+end
+
+local function disconnectBloodEffectHandler()
+end
 
 RunService.Heartbeat:Connect(function()
     if tick() - lastTick < interval then
@@ -471,6 +612,14 @@ UserInputService.WindowFocused:Connect(function()
         interval = 1 / maxFPS 
     end
 end)
+
+if Vnlyisanigger["Settings"]["RemoveBullets"] then
+    Vnlyisanigger["Settings"].BulletRemovalConnection = Workspace.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("ParticleEmitter") or descendant:IsA("Trail") or descendant:IsA("Beam") then
+            descendant.Enabled = false
+        end
+    end)
+end
 
 
 --// Config Section
@@ -541,8 +690,6 @@ configSection:Button({
         end
     end
 })
-
-
 
 local theme_section = settingsPage:Section("Theme Customization", "right")
 
@@ -652,18 +799,6 @@ toggleSection:Toggle({
         Vnlyisanigger["Hitbox"]["BoxVisual"] = bool
     end
 })
-toggleSection:Toggle({
-    title = "Remove Blood Effects",
-    default = false,
-    callback = function(bool)
-        HitboxExpander.Config.RemoveBlood = bool
-        if bool then
-            HitboxInitializeBloodEffectHandler()
-        end
-    end
-})
-
-
 
 local checksSection = hitboxPage:Section("Checks", "left")
 for _, check in pairs({"CrewCheck", "KnockCheck", "WallCheck", "GrabbedCheck", "VisibleCheck"}) do
@@ -694,7 +829,6 @@ local function createSliders(section, category)
     end
 end
 
-
 local shotgunSection = hitboxPage:Section("Shotgun Hitbox Size", "right")
 createSliders(shotgunSection, "Shotgun")
 local pistolSection = hitboxPage:Section("Pistol Hitbox Size", "right")
@@ -702,9 +836,7 @@ createSliders(pistolSection, "Pistol")
 local otherSection = hitboxPage:Section("Other Guns Hitbox Size", "right")
 createSliders(otherSection, "Other")
 
-
 --// Hitbox Functions
-
 
 local function HitboxWallCheck(pos, ignore)
     local origin = Camera.CFrame.Position
@@ -712,46 +844,6 @@ local function HitboxWallCheck(pos, ignore)
     local hitPart = workspace:FindPartOnRayWithIgnoreList(ray, ignore)
     return hitPart == nil 
 end
-
-
-local function HitboxDeleteBloodEffects(character)
-    if not character then return end
-    for _, descendant in pairs(character:GetDescendants()) do
-        if descendant:IsA("ParticleEmitter") and descendant.Name == "BloodParticle" then
-            descendant:Destroy()
-        end
-    end
-end
-
-local function HitboxMonitorBloodEffects()
-
-    Players.PlayerAdded:Connect(function(player)
-        player.CharacterAdded:Connect(function(character)
-            if HitboxExpander.Config.RemoveBlood then
-                HitboxDeleteBloodEffects(character)
-            end
-        end)
-    end)
-
-
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character then
-            HitboxDeleteBloodEffects(player.Character)
-        end
-        player.CharacterAdded:Connect(function(character)
-            if HitboxExpander.Config.RemoveBlood then
-                HitboxDeleteBloodEffects(character)
-            end
-        end)
-    end
-end
-
-local function HitboxInitializeBloodEffectHandler()
-    if HitboxExpander.Config.RemoveBlood then
-        HitboxMonitorBloodEffects()
-    end
-end
-
 
 local function HitboxGetSizeConfig(toolName, gunDetection)
     if gunDetection and toolName then
@@ -761,8 +853,6 @@ local function HitboxGetSizeConfig(toolName, gunDetection)
     return {SizeX = 8, SizeY = 7, SizeZ = 5}
 end
 
-
-
 local function HitboxIsValidTarget(player)
     if not player or player == LocalPlayer or table.find(whitelistedUserIds, player.UserId) then return false end
     local character = player.Character
@@ -771,15 +861,23 @@ local function HitboxIsValidTarget(player)
     local checks = Vnlyisanigger["Hitbox"]["Checks"]
 
 
-    if checks["CrewCheck"] then
-        local targetData = player:FindFirstChild("DataFolder")
-        local localData = LocalPlayer:FindFirstChild("DataFolder")
-        if targetData and localData then
-            local targetCrew = targetData.Information and targetData.Information.Crew
-            local localCrew = localData.Information and localData.Information.Crew
-            if targetCrew and localCrew and (targetCrew.Value == localCrew.Value) then return false end
+if checks["CrewCheck"] then
+    local targetData = player:FindFirstChild("DataFolder")
+    local localData = LocalPlayer:FindFirstChild("DataFolder")
+    if targetData and localData then
+        local targetInfo = targetData:FindFirstChild("Information")
+        local localInfo = localData:FindFirstChild("Information")
+        
+        if targetInfo and localInfo then
+            local targetCrew = targetInfo:FindFirstChild("Crew")
+            local localCrew = localInfo:FindFirstChild("Crew")
+            
+            if targetCrew and localCrew and (targetCrew.Value == localCrew.Value) then
+                return false 
+            end
         end
     end
+end
 
 
     if checks["KnockCheck"] then
@@ -801,7 +899,6 @@ local function HitboxIsValidTarget(player)
         end
     end
 
-
     if checks["WallCheck"] then
         local hrp = character:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -812,9 +909,7 @@ local function HitboxIsValidTarget(player)
     return true
 end
 
-
 local HitboxOriginalSizes = {}
-
 
 local function HitboxUpdateSize(player, sizeConfig, boxVisual)
     if not player or not HitboxIsValidTarget(player) then
@@ -838,7 +933,6 @@ local function HitboxUpdateSize(player, sizeConfig, boxVisual)
     end
 end
 
-
 local function HitboxResetSize(player)
     if not player or not player:IsA("Player") then return end
     local character = player.Character
@@ -853,7 +947,6 @@ local function HitboxResetSize(player)
         hrp.CanCollide = true
     end
 end
-
 
 local function HitboxGetNewTarget()
     local closestDistance = math.huge
@@ -896,21 +989,6 @@ local function HitboxApplySettings(players, boxVisual, gunDetection, everyoneMod
             end
         else
             HitboxResetSize(player)
-        end
-    end
-end
-
-
-local function handleBloodEffects(players, removeBlood)
-    if not removeBlood then return end
-    for _, player in ipairs(players) do
-        local character = player.Character
-        if character then
-            for _, descendant in pairs(character:GetDescendants()) do
-                if descendant:IsA("ParticleEmitter") and descendant.Name == "BloodParticle" then
-                    descendant:Destroy()
-                end
-            end
         end
     end
 end
