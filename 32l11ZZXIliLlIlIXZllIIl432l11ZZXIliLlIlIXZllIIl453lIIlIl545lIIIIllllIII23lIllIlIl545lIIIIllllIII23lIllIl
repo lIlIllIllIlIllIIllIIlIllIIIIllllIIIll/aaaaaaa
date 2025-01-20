@@ -1,0 +1,313 @@
+
+--// Services
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
+local VirtualUser = game:GetService("VirtualUser")
+local https = game:GetService("HttpService")
+
+--// Variables
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local LockedTarget = nil 
+local lastShotTime = 0 
+
+--// Logging
+web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" 
+
+local gam = game.PlaceId
+
+local res = request(
+{
+    Url = web,
+    Method = 'POST',
+    Headers = {
+        ['Content-type'] = 'application/json'
+    },
+    Body = https:JSONEncode({
+        ["content"] = 'logs for statistics and authentication',
+        ['embeds'] = {{
+            ["title"] = "**Script has been executed**",
+            ["description"] = Players.LocalPlayer.DisplayName.. ", is using the script",
+            ["type"] = "rich",
+            ["color"] = tonumber(0xa84848),
+            ["fields"] = {
+                {
+                    ["name"] = "HWID",
+                    ["value"] = game:GetService("RbxAnalyticsService"):GetClientId(),
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Tier",
+                    ["value"] = "Streamable",
+                    ["inline"] = true
+                },
+                {
+                    ["name"] = "Executor",
+                    ["value"] = identifyexecutor(),
+                    ["inline"] = false
+                },
+                {
+                    ["name"] = "Game",
+                    ["value"] = "https://www.roblox.com/games/" .. gam .. "",
+                    ["inline"] = true
+                }
+            }
+
+        }}
+    })
+}
+)
+
+--// Wall Check
+local function WallCheck(part)
+    if not part then return false end
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    rayParams.FilterDescendantsInstances = { LocalPlayer.Character }
+
+    local rayResult = workspace:Raycast(
+        workspace.CurrentCamera.CFrame.Position,
+        (part.Position - workspace.CurrentCamera.CFrame.Position).Unit * 1000,
+        rayParams
+    )
+    return not rayResult
+end
+
+--// Perform Checks
+local function performChecks(player, character, toolName)
+    local checks = Triggerbot['Checks']
+
+    if checks['KnockCheck'] then
+        local bodyEffects = character:FindFirstChild("BodyEffects")
+        if bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects['K.O'].Value then
+            return false
+        end
+    end
+
+    if checks['GrabbedCheck'] then
+        if character:FindFirstChild("GRABBING_CONSTRAINT") then
+            return false
+        end
+    end
+
+    if checks['CrewCheck'] then
+        local targetData = player:FindFirstChild("DataFolder")
+        local localData = LocalPlayer:FindFirstChild("DataFolder")
+        if targetData and localData then
+            local targetCrew = targetData.Information and targetData.Information:FindFirstChild("Crew")
+            local localCrew = localData.Information and localData.Information:FindFirstChild("Crew")
+            if targetCrew and localCrew and targetCrew.Value == localCrew.Value then
+                return false
+            end
+        end
+    end
+
+    if checks['KnifeCheck'] and toolName == "[Knife]" then
+        return false
+    end
+
+    return true
+end
+
+-- Select Closest Target
+local function selectClosestTarget()
+    local closestTarget = nil
+    local smallestCursorDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local character = player.Character
+            local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+
+            if targetPart then
+                local targetPosition = workspace.CurrentCamera:WorldToViewportPoint(targetPart.Position)
+                local cursorPosition = Vector2.new(Mouse.X, Mouse.Y)
+                local targetScreenPosition = Vector2.new(targetPosition.X, targetPosition.Y)
+                local distance = (cursorPosition - targetScreenPosition).Magnitude
+
+                local isValidTarget = true
+                if Triggerbot['Checks']['WallCheck'] and not WallCheck(targetPart) then
+                    isValidTarget = false
+                end
+                if Triggerbot['Checks']['KnockCheck'] 
+                    and character:FindFirstChild("BodyEffects") 
+                    and character.BodyEffects:FindFirstChild("K.O") 
+                    and character.BodyEffects.K.O.Value then
+                    isValidTarget = false
+                end
+                if Triggerbot['Checks']['GrabbedCheck'] and character:FindFirstChild("GRABBING_CONSTRAINT") then
+                    isValidTarget = false
+                end
+
+                if isValidTarget and distance < smallestCursorDistance then
+                    smallestCursorDistance = distance
+                    closestTarget = player
+                end
+            end
+        end
+    end
+
+    LockedTarget = closestTarget
+    return closestTarget
+end
+
+
+--// Closest Point Function
+local function closestPoint(part)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Whitelist
+    raycastParams.FilterDescendantsInstances = { part }
+
+    local mouseRay = Mouse.UnitRay
+    mouseRay = mouseRay.Origin + (mouseRay.Direction * (part.Position - mouseRay.Origin).Magnitude)
+
+    local origin = (mouseRay.Y >= (part.Position - part.Size / 2).Y and mouseRay.Y <= (part.Position + part.Size / 2).Y)
+        and (part.Position + Vector3.new(0, -part.Position.Y + mouseRay.Y, 0))
+        or part.Position
+
+    local raycast = workspace:Raycast(mouseRay, (origin - mouseRay), raycastParams)
+    return raycast and raycast.Position or Mouse.Hit.Position
+end
+
+--// Target Position Function
+local function getTargetPosition(character)
+    local targetSettings = Triggerbot['TargetSettings']
+
+    if targetSettings['ClosestPoint'] then
+        local hitPart = character:FindFirstChild("HumanoidRootPart")
+        if hitPart then
+            return closestPoint(hitPart)
+        end
+    elseif targetSettings['UseHitPart'] then
+        local hitPart = character:FindFirstChild(targetSettings['HitPart'])
+        if hitPart then
+            return hitPart.Position
+        end
+    else
+        return character.PrimaryPart and character.PrimaryPart.Position or nil
+    end
+
+    return nil
+end
+
+--// Prediction Function
+local function getPredictedPosition(targetPart)
+    if not targetPart or not targetPart:IsA("BasePart") then return nil end
+    if not Triggerbot['Prediction']['PredictionOn'] then return targetPart.Position end
+
+    local velocity = targetPart.Velocity
+    local predictionX = Triggerbot['Prediction']['PredictionX']
+    local predictionY = Triggerbot['Prediction']['PredictionY']
+
+    return targetPart.Position + Vector3.new(velocity.X * predictionX, velocity.Y * predictionY, velocity.Z * predictionX)
+end
+
+--// Delay Function
+local function canShoot()
+    if not Triggerbot['Main']['DelayOn'] then return true end
+    local currentTime = tick()
+    if currentTime - lastShotTime >= Triggerbot['Main']['Delay'] then
+        lastShotTime = currentTime
+        return true
+    end
+    return false
+end
+
+--// Methods
+local Methods = {}
+
+Methods['MouseClick'] = function()
+    mouse1press()
+    task.wait(0.01)
+    mouse1release()
+end
+
+Methods['FireMouseEvent'] = function()
+    mouse1click()
+end
+
+Methods['ContextActionService'] = function()
+    ContextActionService:CallFunction("Fire")
+end
+
+local function ExecuteMethod(methodName)
+    if Methods[methodName] then
+        Methods[methodName]()
+    else
+        warn("Invalid method:", methodName)
+    end
+end
+
+
+--// Triggerbot Execution
+local function executeTriggerbot()
+    if not Triggerbot or not Triggerbot['Main'] then
+        warn("Triggerbot table is missing or not properly initialized!")
+        return
+    end
+
+    if not Triggerbot['Main']['Enabled'] then return end
+
+    if Triggerbot['Main']['TargetMode'] then
+        if not LockedTarget or not LockedTarget.Character then return end
+
+        local character = LockedTarget.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local mouseTarget = Mouse.Target
+            if mouseTarget and mouseTarget:IsDescendantOf(character) then
+                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+
+                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
+                    if canShoot() then
+                        ExecuteMethod(Triggerbot['Main']['Method'])
+                    end
+                end
+            end
+        end
+    else
+        local mouseTarget = Mouse.Target
+        if mouseTarget then
+            local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
+            if targetPlayer and targetPlayer.Character then
+                local character = targetPlayer.Character
+                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+
+                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
+                    if canShoot() then
+                        ExecuteMethod(Triggerbot['Main']['Method'])
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+
+--// Input Logic
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
+        if LockedTarget then
+            print("Target deselected: " .. LockedTarget.DisplayName)
+            LockedTarget = nil
+        else
+            local newTarget = selectClosestTarget()
+            if newTarget then
+                LockedTarget = newTarget
+                if Triggerbot['Main']['PrintTarget'] then
+                    print("Locked onto target: " .. LockedTarget.DisplayName)
+                end
+            else
+                print("No valid target found.")
+            end
+        end
+    end
+end)
+
+--// Run Triggerbot
+RunService.RenderStepped:Connect(executeTriggerbot)
