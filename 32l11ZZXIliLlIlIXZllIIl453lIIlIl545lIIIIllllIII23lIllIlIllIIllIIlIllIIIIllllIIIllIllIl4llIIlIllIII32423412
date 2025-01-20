@@ -112,6 +112,13 @@ local function performChecks(player, character, toolName)
         return false, "Knife tool is equipped"
     end
 
+        if checks['Forcefield'] then
+        local forceField = character:FindFirstChildOfClass("ForceField")
+        if forceField then
+            return false, "Player has spawn protection (ForceField)"
+        end
+    end
+
     return true, "All checks passed"
 end
 
