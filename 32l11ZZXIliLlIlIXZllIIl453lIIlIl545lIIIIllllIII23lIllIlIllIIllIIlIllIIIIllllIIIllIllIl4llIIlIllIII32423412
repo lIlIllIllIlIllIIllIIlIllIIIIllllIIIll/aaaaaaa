@@ -79,7 +79,6 @@ end
 local function performChecks(player, character, toolName)
     local checks = Triggerbot['Checks']
 
-    -- Knock Check
     if checks['KnockCheck'] then
         local bodyEffects = character:FindFirstChild("BodyEffects")
         if not bodyEffects then
@@ -96,14 +95,12 @@ local function performChecks(player, character, toolName)
         end
     end
 
-    -- Grabbed Check
     if checks['GrabbedCheck'] then
         if character:FindFirstChild("GRABBING_CONSTRAINT") then
             return false, "Player is grabbed"
         end
     end
 
-    -- Crew Check
     if checks['CrewCheck'] then
         local targetData = player:FindFirstChild("DataFolder")
         local localData = LocalPlayer:FindFirstChild("DataFolder")
@@ -116,12 +113,10 @@ local function performChecks(player, character, toolName)
         end
     end
 
-    -- Knife Check
     if checks['KnifeCheck'] and toolName == "[Knife]" then
         return false, "Knife tool is equipped"
     end
 
-    -- Forcefield Check
     if checks['Forcefield'] then
         local forceField = character:FindFirstChildOfClass("ForceField")
         if forceField then
@@ -132,7 +127,7 @@ local function performChecks(player, character, toolName)
     return true, "All checks passed"
 end
 
--- Select Closest Target
+--// Select Closest Target
 local function selectClosestTarget()
     local closestTarget = nil
     local smallestCursorDistance = math.huge
@@ -147,21 +142,24 @@ local function selectClosestTarget()
                 local cursorPosition = Vector2.new(Mouse.X, Mouse.Y)
                 local targetScreenPosition = Vector2.new(targetPosition.X, targetPosition.Y)
                 local distance = (cursorPosition - targetScreenPosition).Magnitude
-                local isValidTarget, failureReason = performChecks(player, character, "")
-                if isValidTarget and distance < smallestCursorDistance then
-                    smallestCursorDistance = distance
-                    closestTarget = player
+
+                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                local toolName = tool and tool.Name or ""
+                local isValid, reason = performChecks(player, character, toolName)
+
+                if isValid and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
+                    if distance < smallestCursorDistance then
+                        smallestCursorDistance = distance
+                        closestTarget = player
+                    end
                 end
             end
         end
     end
 
-    if closestTarget then
-        LockedTarget = closestTarget
-    else
-        LockedTarget = nil
+    LockedTarget = closestTarget
+    if not LockedTarget and Triggerbot['Main']['PrintTarget'] then
     end
-
     return closestTarget
 end
 
@@ -194,10 +192,10 @@ local function getTargetPosition(character)
     elseif targetSettings['UseHitPart'] then
         local hitPart = character:FindFirstChild(targetSettings['HitPart'])
         if hitPart then
-            return hitPart.Position
+            return hitPart.Position 
         end
     else
-        return character.PrimaryPart and character.PrimaryPart.Position or nil
+        return character.PrimaryPart and character.PrimaryPart.Position or nil 
     end
 
     return nil
@@ -231,7 +229,7 @@ local Methods = {}
 
 Methods['MouseClick'] = function()
     mouse1press()
-    task.wait(0.01)
+    task.wait(0.005) 
     mouse1release()
 end
 
@@ -248,55 +246,47 @@ local function ExecuteMethod(methodName)
         Methods[methodName]()
     else
         warn("Invalid method:", methodName)
+        Methods['MouseClick']()
     end
 end
-
 
 --// Triggerbot Execution
 local function executeTriggerbot()
     if not Triggerbot['Main']['Enabled'] then return end
 
-    if Triggerbot['Main']['TargetMode'] then
-        if not LockedTarget or not LockedTarget.Character then return end
+    local function isMouseOverTarget(targetCharacter)
+        local mouseTarget = Mouse.Target
+        return mouseTarget and mouseTarget:IsDescendantOf(targetCharacter)
+    end
 
-        local character = LockedTarget.Character
+    local function handleTarget(character, player)
         if character and character:FindFirstChild("HumanoidRootPart") then
-            local mouseTarget = Mouse.Target
-            if mouseTarget and mouseTarget:IsDescendantOf(character) then
-                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
-                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                local toolName = tool and tool.Name or ""
+            local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+            local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+            local toolName = tool and tool.Name or ""
 
-                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                    local isValid, reason = performChecks(LockedTarget, character, toolName)
-                    if isValid then
-                        if canShoot() then
-                            ExecuteMethod(Triggerbot['Main']['Method'])
-                        end
-                    else
+            if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
+                local isValid, reason = performChecks(player, character, toolName)
+                if isValid and isMouseOverTarget(character) then
+                    if canShoot() then
+                        ExecuteMethod(Triggerbot['Main']['Method'])
                     end
                 end
             end
+        end
+    end
+
+    if Triggerbot['Main']['TargetMode'] then
+        if LockedTarget and LockedTarget.Character then
+            handleTarget(LockedTarget.Character, LockedTarget)
+        elseif Triggerbot['Main']['PrintTarget'] then
         end
     else
         local mouseTarget = Mouse.Target
         if mouseTarget then
             local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
             if targetPlayer and targetPlayer.Character then
-                local character = targetPlayer.Character
-                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
-                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                local toolName = tool and tool.Name or ""
-
-                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                    local isValid, reason = performChecks(targetPlayer, character, toolName)
-                    if isValid then
-                        if canShoot() then
-                            ExecuteMethod(Triggerbot['Main']['Method'])
-                        end
-                    else
-                    end
-                end
+                handleTarget(targetPlayer.Character, targetPlayer)
             end
         end
     end
@@ -328,7 +318,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         end
                     end
                 elseif Triggerbot['Main']['PrintTarget'] then
-                    print("No valid target found.")
                 end
             else
                 if LockedTarget then
@@ -356,7 +345,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                             end
                         end
                     elseif Triggerbot['Main']['PrintTarget'] then
-                        print("No valid target found.")
                     end
                 end
             end
