@@ -79,23 +79,31 @@ end
 local function performChecks(player, character, toolName)
     local checks = Triggerbot['Checks']
 
-
+    -- Knock Check
     if checks['KnockCheck'] then
         local bodyEffects = character:FindFirstChild("BodyEffects")
-        if bodyEffects then
-            local koState = bodyEffects:FindFirstChild("K.O")
-            if koState and koState:IsA("BoolValue") and koState.Value then
-                return false, "Player is knocked out"
-            end
+        if not bodyEffects then
+            return false, "BodyEffects folder missing"
+        end
+
+        local koState = bodyEffects:FindFirstChild("K.O")
+        if not koState then
+            return false, "K.O value missing"
+        end
+
+        if koState:IsA("BoolValue") and koState.Value then
+            return false, "Player is knocked out"
         end
     end
 
+    -- Grabbed Check
     if checks['GrabbedCheck'] then
         if character:FindFirstChild("GRABBING_CONSTRAINT") then
             return false, "Player is grabbed"
         end
     end
 
+    -- Crew Check
     if checks['CrewCheck'] then
         local targetData = player:FindFirstChild("DataFolder")
         local localData = LocalPlayer:FindFirstChild("DataFolder")
@@ -108,11 +116,13 @@ local function performChecks(player, character, toolName)
         end
     end
 
+    -- Knife Check
     if checks['KnifeCheck'] and toolName == "[Knife]" then
         return false, "Knife tool is equipped"
     end
 
-        if checks['Forcefield'] then
+    -- Forcefield Check
+    if checks['Forcefield'] then
         local forceField = character:FindFirstChildOfClass("ForceField")
         if forceField then
             return false, "Player has spawn protection (ForceField)"
@@ -137,21 +147,7 @@ local function selectClosestTarget()
                 local cursorPosition = Vector2.new(Mouse.X, Mouse.Y)
                 local targetScreenPosition = Vector2.new(targetPosition.X, targetPosition.Y)
                 local distance = (cursorPosition - targetScreenPosition).Magnitude
-
-                local isValidTarget = true
-                if Triggerbot['Checks']['WallCheck'] and not WallCheck(targetPart) then
-                    isValidTarget = false
-                end
-                if Triggerbot['Checks']['KnockCheck'] 
-                    and character:FindFirstChild("BodyEffects") 
-                    and character.BodyEffects:FindFirstChild("K.O") 
-                    and character.BodyEffects.K.O.Value then
-                    isValidTarget = false
-                end
-                if Triggerbot['Checks']['GrabbedCheck'] and character:FindFirstChild("GRABBING_CONSTRAINT") then
-                    isValidTarget = false
-                end
-
+                local isValidTarget, failureReason = performChecks(player, character, "")
                 if isValidTarget and distance < smallestCursorDistance then
                     smallestCursorDistance = distance
                     closestTarget = player
@@ -160,7 +156,12 @@ local function selectClosestTarget()
         end
     end
 
-    LockedTarget = closestTarget
+    if closestTarget then
+        LockedTarget = closestTarget
+    else
+        LockedTarget = nil
+    end
+
     return closestTarget
 end
 
@@ -301,8 +302,6 @@ local function executeTriggerbot()
     end
 end
 
-
-
 --// Input Logic
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -317,9 +316,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             else
                 local newTarget = selectClosestTarget()
                 if newTarget then
-                    LockedTarget = newTarget
-                    if Triggerbot['Main']['PrintTarget'] then
-                        print("Locked onto target: " .. LockedTarget.DisplayName)
+                    local character = newTarget.Character
+                    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                    local toolName = tool and tool.Name or ""
+
+                    local isValid, reason = performChecks(newTarget, character, toolName)
+                    if isValid then
+                        LockedTarget = newTarget
+                        if Triggerbot['Main']['PrintTarget'] then
+                            print("Locked onto target: " .. LockedTarget.DisplayName)
+                        end
+                    else
+                        if Triggerbot['Main']['PrintTarget'] then
+                            print("Could not target: " .. tostring(newTarget.DisplayName) .. " (" .. reason .. ")")
+                        end
                     end
                 elseif Triggerbot['Main']['PrintTarget'] then
                     print("No valid target found.")
@@ -330,6 +340,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
+
 
 --// Run Triggerbot
 RunService.RenderStepped:Connect(executeTriggerbot)
