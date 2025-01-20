@@ -264,23 +264,32 @@ end
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
-    if input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
-        if LockedTarget then
-            print("Target deselected: " .. LockedTarget.DisplayName)
-            LockedTarget = nil
-        else
-            local newTarget = selectClosestTarget()
-            if newTarget then
-                LockedTarget = newTarget
+    if Triggerbot and Triggerbot['Main'] and input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
+        if Triggerbot['Main']['TargetMode'] then
+            if LockedTarget then
+                -- Deselect target
                 if Triggerbot['Main']['PrintTarget'] then
-                    print("Locked onto target: " .. LockedTarget.DisplayName)
+                    print("Target deselected: " .. LockedTarget.DisplayName)
                 end
+                LockedTarget = nil
             else
-                print("No valid target found.")
+                local newTarget = selectClosestTarget()
+                if newTarget then
+                    LockedTarget = newTarget
+                    if Triggerbot['Main']['PrintTarget'] then
+                        print("Locked onto target: " .. LockedTarget.DisplayName)
+                    end
+                elseif Triggerbot['Main']['PrintTarget'] then
+                    print("No valid target found.")
+                end
             end
+        else
+            Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
+            print("Triggerbot is now", Triggerbot['Main']['Enabled'] and "Enabled" or "Disabled")
         end
     end
 end)
+
 
 
 
