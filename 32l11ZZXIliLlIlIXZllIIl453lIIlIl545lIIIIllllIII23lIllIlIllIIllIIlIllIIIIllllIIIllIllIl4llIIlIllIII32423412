@@ -308,12 +308,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 
     if Triggerbot and Triggerbot['Main'] and input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
         if Triggerbot['Main']['TargetMode'] then
-            if LockedTarget then
-                if Triggerbot['Main']['PrintTarget'] then
-                    print("Target deselected: " .. LockedTarget.DisplayName)
-                end
-                LockedTarget = nil
-            else
+            if Triggerbot['Main']['Mode'] == "Hold" then
                 local newTarget = selectClosestTarget()
                 if newTarget then
                     local character = newTarget.Character
@@ -323,6 +318,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                     local isValid, reason = performChecks(newTarget, character, toolName)
                     if isValid then
                         LockedTarget = newTarget
+                        Triggerbot['Main']['Enabled'] = true
                         if Triggerbot['Main']['PrintTarget'] then
                             print("Locked onto target: " .. LockedTarget.DisplayName)
                         end
@@ -334,6 +330,35 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                 elseif Triggerbot['Main']['PrintTarget'] then
                     print("No valid target found.")
                 end
+            else
+                if LockedTarget then
+                    if Triggerbot['Main']['PrintTarget'] then
+                        print("Target deselected: " .. LockedTarget.DisplayName)
+                    end
+                    LockedTarget = nil
+                else
+                    local newTarget = selectClosestTarget()
+                    if newTarget then
+                        local character = newTarget.Character
+                        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                        local toolName = tool and tool.Name or ""
+
+                        local isValid, reason = performChecks(newTarget, character, toolName)
+                        if isValid then
+                            LockedTarget = newTarget
+                            Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
+                            if Triggerbot['Main']['PrintTarget'] then
+                                print("Locked onto target: " .. LockedTarget.DisplayName)
+                            end
+                        else
+                            if Triggerbot['Main']['PrintTarget'] then
+                                print("Could not target: " .. tostring(newTarget.DisplayName) .. " (" .. reason .. ")")
+                            end
+                        end
+                    elseif Triggerbot['Main']['PrintTarget'] then
+                        print("No valid target found.")
+                    end
+                end
             end
         else
             Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
@@ -341,6 +366,21 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if Triggerbot and Triggerbot['Main'] and Triggerbot['Main']['Mode'] == "Hold" and input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
+        Triggerbot['Main']['Enabled'] = false
+        if Triggerbot['Main']['TargetMode'] then
+            if LockedTarget then
+                if Triggerbot['Main']['PrintTarget'] then
+                    print("Target deselected: " .. LockedTarget.DisplayName)
+                end
+                LockedTarget = nil
+            end
+        end
+    end
+end)
 
 --// Run Triggerbot
 RunService.RenderStepped:Connect(executeTriggerbot)
