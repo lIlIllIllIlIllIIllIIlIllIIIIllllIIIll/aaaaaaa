@@ -130,7 +130,7 @@ end
 --// Select Closest Target
 local function selectClosestTarget()
     local closestTarget = nil
-    local smallestCursorDistance = math.huge
+    local smallestWeightedDistance = math.huge
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -139,27 +139,35 @@ local function selectClosestTarget()
 
             if targetPart then
                 local targetPosition = workspace.CurrentCamera:WorldToViewportPoint(targetPart.Position)
-                local cursorPosition = Vector2.new(Mouse.X, Mouse.Y)
+                local cursorPosition = UserInputService:GetMouseLocation()
                 local targetScreenPosition = Vector2.new(targetPosition.X, targetPosition.Y)
-                local distance = (cursorPosition - targetScreenPosition).Magnitude
+                local cursorDistance = (cursorPosition - targetScreenPosition).Magnitude
+
+                local localPlayerPosition = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                local playerDistance = localPlayerPosition and (localPlayerPosition.Position - targetPart.Position).Magnitude or math.huge
+
+                local weightedDistance = cursorDistance + (playerDistance * 0.5) 
 
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 local toolName = tool and tool.Name or ""
                 local isValid, reason = performChecks(player, character, toolName)
 
-                if isValid and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                    if distance < smallestCursorDistance then
-                        smallestCursorDistance = distance
-                        closestTarget = player
-                    end
+                local wallCheckPass = not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)
+
+                if isValid and wallCheckPass and weightedDistance < smallestWeightedDistance then
+                    smallestWeightedDistance = weightedDistance
+                    closestTarget = player
                 end
             end
         end
     end
 
     LockedTarget = closestTarget
+
     if not LockedTarget and Triggerbot['Main']['PrintTarget'] then
+        print("No valid target found")
     end
+
     return closestTarget
 end
 
