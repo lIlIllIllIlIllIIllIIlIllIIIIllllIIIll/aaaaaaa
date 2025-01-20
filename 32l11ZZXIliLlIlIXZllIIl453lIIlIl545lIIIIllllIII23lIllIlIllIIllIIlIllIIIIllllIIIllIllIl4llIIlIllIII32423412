@@ -79,16 +79,20 @@ end
 local function performChecks(player, character, toolName)
     local checks = Triggerbot['Checks']
 
+
     if checks['KnockCheck'] then
         local bodyEffects = character:FindFirstChild("BodyEffects")
-        if bodyEffects and bodyEffects:FindFirstChild("K.O") and bodyEffects['K.O'].Value then
-            return false
+        if bodyEffects then
+            local koState = bodyEffects:FindFirstChild("K.O")
+            if koState and koState:IsA("BoolValue") and koState.Value then
+                return false, "Player is knocked out"
+            end
         end
     end
 
     if checks['GrabbedCheck'] then
         if character:FindFirstChild("GRABBING_CONSTRAINT") then
-            return false
+            return false, "Player is grabbed"
         end
     end
 
@@ -99,16 +103,16 @@ local function performChecks(player, character, toolName)
             local targetCrew = targetData.Information and targetData.Information:FindFirstChild("Crew")
             local localCrew = localData.Information and localData.Information:FindFirstChild("Crew")
             if targetCrew and localCrew and targetCrew.Value == localCrew.Value then
-                return false
+                return false, "Player is in the same crew"
             end
         end
     end
 
     if checks['KnifeCheck'] and toolName == "[Knife]" then
-        return false
+        return false, "Knife tool is equipped"
     end
 
-    return true
+    return true, "All checks passed"
 end
 
 -- Select Closest Target
@@ -152,7 +156,6 @@ local function selectClosestTarget()
     LockedTarget = closestTarget
     return closestTarget
 end
-
 
 --// Closest Point Function
 local function closestPoint(part)
@@ -253,10 +256,16 @@ local function executeTriggerbot()
             local mouseTarget = Mouse.Target
             if mouseTarget and mouseTarget:IsDescendantOf(character) then
                 local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                local toolName = tool and tool.Name or ""
 
                 if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                    if canShoot() then
-                        ExecuteMethod(Triggerbot['Main']['Method'])
+                    local isValid, reason = performChecks(LockedTarget, character, toolName)
+                    if isValid then
+                        if canShoot() then
+                            ExecuteMethod(Triggerbot['Main']['Method'])
+                        end
+                    else
                     end
                 end
             end
@@ -268,16 +277,23 @@ local function executeTriggerbot()
             if targetPlayer and targetPlayer.Character then
                 local character = targetPlayer.Character
                 local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+                local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                local toolName = tool and tool.Name or ""
 
                 if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                    if canShoot() then
-                        ExecuteMethod(Triggerbot['Main']['Method'])
+                    local isValid, reason = performChecks(targetPlayer, character, toolName)
+                    if isValid then
+                        if canShoot() then
+                            ExecuteMethod(Triggerbot['Main']['Method'])
+                        end
+                    else
                     end
                 end
             end
         end
     end
 end
+
 
 
 --// Input Logic
