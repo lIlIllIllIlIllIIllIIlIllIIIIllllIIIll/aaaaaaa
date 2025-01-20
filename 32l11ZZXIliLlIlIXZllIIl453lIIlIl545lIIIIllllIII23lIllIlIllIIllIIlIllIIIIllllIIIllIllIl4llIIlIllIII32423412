@@ -244,6 +244,11 @@ end
 
 --// Triggerbot Execution
 local function executeTriggerbot()
+    if not Triggerbot or not Triggerbot['Main'] then
+        warn("Triggerbot table is missing or not properly initialized!")
+        return
+    end
+
     if not Triggerbot['Main']['Enabled'] then return end
 
     if Triggerbot['Main']['TargetMode'] then
@@ -279,6 +284,7 @@ local function executeTriggerbot()
         end
     end
 end
+
 
 
 --// Input Logic
