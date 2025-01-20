@@ -1,4 +1,3 @@
-
 --// Services
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
@@ -244,48 +243,22 @@ end
 
 --// Triggerbot Execution
 local function executeTriggerbot()
-    if not Triggerbot or not Triggerbot['Main'] then
-        warn("Triggerbot table is missing or not properly initialized!")
-        return
-    end
+    if not Triggerbot['Main']['Enabled'] or not LockedTarget then return end
 
-    if not Triggerbot['Main']['Enabled'] then return end
-
-    if Triggerbot['Main']['TargetMode'] then
-        if not LockedTarget or not LockedTarget.Character then return end
-
-        local character = LockedTarget.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local mouseTarget = Mouse.Target
-            if mouseTarget and mouseTarget:IsDescendantOf(character) then
-                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
-
-                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                    if canShoot() then
-                        ExecuteMethod(Triggerbot['Main']['Method'])
-                    end
-                end
-            end
-        end
-    else
+    local character = LockedTarget.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
         local mouseTarget = Mouse.Target
-        if mouseTarget then
-            local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
-            if targetPlayer and targetPlayer.Character then
-                local character = targetPlayer.Character
-                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+        if mouseTarget and mouseTarget:IsDescendantOf(character) then
+            local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
 
-                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                    if canShoot() then
-                        ExecuteMethod(Triggerbot['Main']['Method'])
-                    end
+            if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
+                if canShoot() then
+                    ExecuteMethod(Triggerbot['Main']['Method'])
                 end
             end
         end
     end
 end
-
-
 
 --// Input Logic
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -308,6 +281,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         end
     end
 end)
+
+
 
 --// Run Triggerbot
 RunService.RenderStepped:Connect(executeTriggerbot)
