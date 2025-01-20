@@ -243,22 +243,42 @@ end
 
 --// Triggerbot Execution
 local function executeTriggerbot()
-    if not Triggerbot['Main']['Enabled'] or not LockedTarget then return end
+    if not Triggerbot['Main']['Enabled'] then return end
 
-    local character = LockedTarget.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
+    if Triggerbot['Main']['TargetMode'] then
+        if not LockedTarget or not LockedTarget.Character then return end
+
+        local character = LockedTarget.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local mouseTarget = Mouse.Target
+            if mouseTarget and mouseTarget:IsDescendantOf(character) then
+                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+
+                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
+                    if canShoot() then
+                        ExecuteMethod(Triggerbot['Main']['Method'])
+                    end
+                end
+            end
+        end
+    else
         local mouseTarget = Mouse.Target
-        if mouseTarget and mouseTarget:IsDescendantOf(character) then
-            local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+        if mouseTarget then
+            local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
+            if targetPlayer and targetPlayer.Character then
+                local character = targetPlayer.Character
+                local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
 
-            if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
-                if canShoot() then
-                    ExecuteMethod(Triggerbot['Main']['Method'])
+                if targetPart and (not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)) then
+                    if canShoot() then
+                        ExecuteMethod(Triggerbot['Main']['Method'])
+                    end
                 end
             end
         end
     end
 end
+
 
 --// Input Logic
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -267,7 +287,6 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if Triggerbot and Triggerbot['Main'] and input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
         if Triggerbot['Main']['TargetMode'] then
             if LockedTarget then
-                -- Deselect target
                 if Triggerbot['Main']['PrintTarget'] then
                     print("Target deselected: " .. LockedTarget.DisplayName)
                 end
@@ -285,13 +304,9 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             end
         else
             Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
-            print("Triggerbot is now", Triggerbot['Main']['Enabled'] and "Enabled" or "Disabled")
         end
     end
 end)
-
-
-
 
 --// Run Triggerbot
 RunService.RenderStepped:Connect(executeTriggerbot)
