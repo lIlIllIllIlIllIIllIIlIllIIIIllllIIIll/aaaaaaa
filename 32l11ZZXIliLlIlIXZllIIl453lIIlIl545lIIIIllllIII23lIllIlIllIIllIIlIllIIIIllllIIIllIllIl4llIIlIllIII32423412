@@ -73,8 +73,6 @@ local function WallCheck(targetPart)
         (targetPart.Position - workspace.CurrentCamera.CFrame.Position).Unit * 1000,
         rayParams
     )
-
-    -- Pass the wall check only if no obstruction is found, or the ray hits the target itself
     return rayResult and rayResult.Instance and rayResult.Instance:IsDescendantOf(targetPart.Parent)
 end
 
@@ -221,21 +219,15 @@ local function getPredictedPositions(character)
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
             local velocity = part.Velocity
-            local speed = velocity.Magnitude
+            local predictionX = Triggerbot['Prediction']['PredictionX']
+            local predictionY = Triggerbot['Prediction']['PredictionY']
 
-            if speed < 0.1 then
-                table.insert(predictedPositions, part.Position)
-            else
-                local predictionX = Triggerbot['Prediction']['PredictionX']
-                local predictionY = Triggerbot['Prediction']['PredictionY']
-
-                local predictedPosition = part.Position + Vector3.new(
-                    velocity.X * predictionX,
-                    velocity.Y * predictionY,
-                    velocity.Z * predictionX
-                )
-                table.insert(predictedPositions, predictedPosition)
-            end
+            local predictedPosition = part.Position + Vector3.new(
+                velocity.X * predictionX,
+                velocity.Y * predictionY,
+                velocity.Z * predictionX
+            )
+            table.insert(predictedPositions, predictedPosition)
         end
     end
 
@@ -298,28 +290,29 @@ local function ExecuteMethod(methodName)
     end
 end
 
---// Visualization for Predicted Part
-local predictedPartVisualizer = Drawing.new("Square")
-predictedPartVisualizer.Visible = false
-predictedPartVisualizer.Color = Color3.fromRGB(255, 0, 0) 
-predictedPartVisualizer.Thickness = 2
-predictedPartVisualizer.Size = Vector2.new(15, 15) 
+--// Sphere Visualizer
+local sphereVisualizer = Instance.new("Part")
+sphereVisualizer.Shape = Enum.PartType.Ball
+sphereVisualizer.Size = Vector3.new(1, 1, 1) 
+sphereVisualizer.Color = Color3.fromRGB(255, 0, 0) 
+sphereVisualizer.Anchored = true
+sphereVisualizer.CanCollide = false
+sphereVisualizer.Transparency = 0.9 
+sphereVisualizer.Material = Enum.Material.Neon
+sphereVisualizer.Parent = workspace
 
-local function updatePredictionVisualizer(character)
+local function updateSphereVisualizer(character)
     if not Triggerbot['Prediction']['VisualizePredictionPart'] then
-        predictedPartVisualizer.Visible = false
+        sphereVisualizer.Transparency = 1 
         return
     end
 
     local predictedPositions = getPredictedPositions(character)
-    for _, predictedPosition in ipairs(predictedPositions) do
-        local screenPosition, onScreen = workspace.CurrentCamera:WorldToViewportPoint(predictedPosition)
-        if onScreen then
-            predictedPartVisualizer.Position = Vector2.new(screenPosition.X, screenPosition.Y)
-            predictedPartVisualizer.Visible = true
-        else
-            predictedPartVisualizer.Visible = false
-        end
+    if #predictedPositions > 0 then
+        sphereVisualizer.Position = predictedPositions[1] 
+        sphereVisualizer.Transparency = 0.5 
+    else
+        sphereVisualizer.Transparency = 1 
     end
 end
 
@@ -382,26 +375,24 @@ local function isMouseOverTarget(character)
 end
 
 local function handleTarget(character, player)
-    if character then
-        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        local toolName = tool and tool.Name or ""
+    if not character then return end
+    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+    local toolName = tool and tool.Name or ""
 
-        local isValid, _ = performChecks(player, character, toolName)
-        if not isValid then return end
 
-        if Triggerbot['Prediction']['VisualizePredictionPart'] then
-            updatePredictionVisualizer(character)
+    local isValid, _ = performChecks(player, character, toolName)
+    if not isValid then return end
+    if Triggerbot['Prediction']['VisualizePredictionPart'] then
+        updateSphereVisualizer(character)
+    end
+
+    if not Triggerbot['Prediction']['PredictionOn'] then
+        if isMouseOverTarget(character) and canShoot() then
+            ExecuteMethod(Triggerbot['Main']['Method'])
         end
-
-        if Triggerbot['Prediction']['PredictionOn'] then
-            if isMouseOverPredictedCharacter(character) and canShoot() then
-                ExecuteMethod(Triggerbot['Main']['Method'])
-            end
-        else
-            local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
-            if targetPart and WallCheck(targetPart) and isMouseOverTarget(character) and canShoot() then
-                ExecuteMethod(Triggerbot['Main']['Method'])
-            end
+    else
+        if isMouseOverPredictedCharacter(character) and canShoot() then
+            ExecuteMethod(Triggerbot['Main']['Method'])
         end
     end
 end
@@ -431,10 +422,6 @@ local function executeTriggerbot()
                 handleTarget(targetPlayer.Character, targetPlayer)
             end
         end
-    end
-
-    if not LockedTarget then
-        predictedPartVisualizer.Visible = false
     end
 end
 
