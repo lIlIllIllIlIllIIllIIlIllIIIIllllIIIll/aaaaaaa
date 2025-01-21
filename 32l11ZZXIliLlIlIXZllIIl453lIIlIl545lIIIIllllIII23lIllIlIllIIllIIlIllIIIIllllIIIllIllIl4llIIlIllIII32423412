@@ -392,11 +392,9 @@ local function executeTriggerbot()
 
             local isValid, reason = passesChecks(player, character, toolName)
             if not isValid then
-                if Triggerbot['Main']['PrintTarget'] then
-                    print("Could not target: " .. tostring(player.DisplayName) .. " (" .. reason .. ")")
-                end
-                return
+               return
             end
+
 
             if isMouseOverPredictedCharacter(character) and canShoot() then
                 ExecuteMethod(Triggerbot['Main']['Method'])
