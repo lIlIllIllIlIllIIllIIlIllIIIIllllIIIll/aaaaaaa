@@ -61,19 +61,23 @@ local res = request(
 )
 
 --// Wall Check
-local function WallCheck(part)
-    if not part then return false end
+local function WallCheck(targetPart)
+    if not targetPart then return false end
+
     local rayParams = RaycastParams.new()
     rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    rayParams.FilterDescendantsInstances = { LocalPlayer.Character }
+    rayParams.FilterDescendantsInstances = { LocalPlayer.Character, workspace.CurrentCamera }
 
     local rayResult = workspace:Raycast(
         workspace.CurrentCamera.CFrame.Position,
-        (part.Position - workspace.CurrentCamera.CFrame.Position).Unit * 1000,
+        (targetPart.Position - workspace.CurrentCamera.CFrame.Position).Unit * 1000,
         rayParams
     )
-    return not rayResult
+
+    -- Pass the wall check only if no obstruction is found, or the ray hits the target itself
+    return rayResult and rayResult.Instance and rayResult.Instance:IsDescendantOf(targetPart.Parent)
 end
+
 
 --// Perform Checks
 local function performChecks(player, character, toolName)
@@ -210,36 +214,52 @@ local function getTargetPosition(character)
 end
 
 --// Prediction Function
-local function getPredictedPosition(targetPart)
-    if not targetPart or not targetPart:IsA("BasePart") then return nil end
-    if not Triggerbot['Prediction']['PredictionOn'] then return targetPart.Position end
+local function getPredictedPositions(character)
+    if not character then return {} end
 
-    local velocity = targetPart.Velocity
-    local speed = velocity.Magnitude
+    local predictedPositions = {}
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            local velocity = part.Velocity
+            local speed = velocity.Magnitude
 
-    if speed < 0.1 then
-        return targetPart.Position
+            if speed < 0.1 then
+                table.insert(predictedPositions, part.Position)
+            else
+                local predictionX = Triggerbot['Prediction']['PredictionX']
+                local predictionY = Triggerbot['Prediction']['PredictionY']
+
+                local predictedPosition = part.Position + Vector3.new(
+                    velocity.X * predictionX,
+                    velocity.Y * predictionY,
+                    velocity.Z * predictionX
+                )
+                table.insert(predictedPositions, predictedPosition)
+            end
+        end
     end
 
-    local predictionX = Triggerbot['Prediction']['PredictionX']
-    local predictionY = Triggerbot['Prediction']['PredictionY']
-
-    return targetPart.Position + Vector3.new(
-        velocity.X * predictionX,
-        velocity.Y * predictionY,
-        velocity.Z * predictionX
-    )
+    return predictedPositions
 end
-
 
 --// Delay Function
 local function canShoot()
-    if not Triggerbot['Main']['DelayOn'] then return true end
     local currentTime = tick()
-    if currentTime - lastShotTime >= Triggerbot['Main']['Delay'] then
+    local delay = Triggerbot['Delay']['Delay']
+
+    if Triggerbot['Delay']['RandomDelay'] then
+        local minDelay = Triggerbot['Delay']['MinDelay']
+        local maxDelay = Triggerbot['Delay']['MaxDelay']
+        delay = math.random() * (maxDelay - minDelay) + minDelay
+    end
+
+    if not Triggerbot['Delay']['DelayOn'] then
+        return true
+    elseif currentTime - lastShotTime >= delay then
         lastShotTime = currentTime
         return true
     end
+
     return false
 end
 
@@ -285,14 +305,14 @@ predictedPartVisualizer.Color = Color3.fromRGB(255, 0, 0)
 predictedPartVisualizer.Thickness = 2
 predictedPartVisualizer.Size = Vector2.new(15, 15) 
 
-local function updatePredictionVisualizer(targetPart)
+local function updatePredictionVisualizer(character)
     if not Triggerbot['Prediction']['VisualizePredictionPart'] then
         predictedPartVisualizer.Visible = false
         return
     end
 
-    local predictedPosition = getPredictedPosition(targetPart)
-    if predictedPosition then
+    local predictedPositions = getPredictedPositions(character)
+    for _, predictedPosition in ipairs(predictedPositions) do
         local screenPosition, onScreen = workspace.CurrentCamera:WorldToViewportPoint(predictedPosition)
         if onScreen then
             predictedPartVisualizer.Position = Vector2.new(screenPosition.X, screenPosition.Y)
@@ -300,107 +320,94 @@ local function updatePredictionVisualizer(targetPart)
         else
             predictedPartVisualizer.Visible = false
         end
-    else
-        predictedPartVisualizer.Visible = false
     end
 end
 
-local function executeTriggerbot()
-    if not Triggerbot['Main']['Enabled'] then return end
+local function getPredictedPosition(targetPart)
+    if not targetPart or not targetPart:IsA("BasePart") then return nil end
 
-    local function isMouseOverPredictedCharacter(character)
-        if not character then return false end
+    local velocity = targetPart.Velocity
+    local speed = velocity.Magnitude
 
-        local bodyParts = {} 
-        for _, part in ipairs(character:GetChildren()) do
-            if part:IsA("BasePart") then
-                local predictedPosition = getPredictedPosition(part)
-                if predictedPosition then
-                    table.insert(bodyParts, predictedPosition)
-                end
-            end
-        end
+    if speed < 0.1 then
+        return targetPart.Position
+    end
 
-        if Triggerbot['Prediction']['VisualizePredictionPart'] then
-            local primaryPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
-            if primaryPart then
-                updatePredictionVisualizer(primaryPart)
-            end
-        end
+    local predictionX = Triggerbot['Prediction']['PredictionX']
+    local predictionY = Triggerbot['Prediction']['PredictionY']
 
-        local cursorPosition = UserInputService:GetMouseLocation()
-        for _, predictedPosition in ipairs(bodyParts) do
-            local screenPosition, onScreen = workspace.CurrentCamera:WorldToViewportPoint(predictedPosition)
-            if onScreen then
+    return targetPart.Position + Vector3.new(
+        velocity.X * predictionX,
+        velocity.Y * predictionY,
+        velocity.Z * predictionX
+    )
+end
+
+local function isMouseOverPredictedCharacter(character)
+    if not character then return false end
+
+    local predictedPositions = getPredictedPositions(character)
+    local cursorPosition = UserInputService:GetMouseLocation()
+
+    for _, predictedPosition in ipairs(predictedPositions) do
+        local screenPosition, onScreen = workspace.CurrentCamera:WorldToViewportPoint(predictedPosition)
+        if onScreen then
+            local rayParams = RaycastParams.new()
+            rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+            rayParams.FilterDescendantsInstances = { LocalPlayer.Character }
+
+            local rayResult = workspace:Raycast(
+                workspace.CurrentCamera.CFrame.Position,
+                (predictedPosition - workspace.CurrentCamera.CFrame.Position).Unit * 1000,
+                rayParams
+            )
+
+            if rayResult and rayResult.Instance and rayResult.Instance:IsDescendantOf(character) then
                 local distanceToPrediction = (Vector2.new(screenPosition.X, screenPosition.Y) - cursorPosition).Magnitude
                 if distanceToPrediction <= 5 then 
                     return true
                 end
             end
         end
-
-        return false
     end
 
-    local function passesChecks(player, character, toolName)
-        local checks = Triggerbot['Checks']
+    return false
+end
 
-        if checks['KnockCheck'] then
-            local bodyEffects = character:FindFirstChild("BodyEffects")
-            local koState = bodyEffects and bodyEffects:FindFirstChild("K.O")
-            if koState and koState:IsA("BoolValue") and koState.Value then
-                return false, "Player is knocked out"
-            end
+local function isMouseOverTarget(character)
+    if not character then return false end
+
+    local mouseTarget = Mouse.Target
+    return mouseTarget and mouseTarget:IsDescendantOf(character)
+end
+
+local function handleTarget(character, player)
+    if character then
+        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+        local toolName = tool and tool.Name or ""
+
+        local isValid, _ = performChecks(player, character, toolName)
+        if not isValid then return end
+
+        if Triggerbot['Prediction']['VisualizePredictionPart'] then
+            updatePredictionVisualizer(character)
         end
 
-        if checks['GrabbedCheck'] then
-            if character:FindFirstChild("GRABBING_CONSTRAINT") then
-                return false, "Player is grabbed"
-            end
-        end
-
-        if checks['CrewCheck'] then
-            local targetData = player:FindFirstChild("DataFolder")
-            local localData = LocalPlayer:FindFirstChild("DataFolder")
-            if targetData and localData then
-                local targetCrew = targetData.Information and targetData.Information:FindFirstChild("Crew")
-                local localCrew = localData.Information and localData.Information:FindFirstChild("Crew")
-                if targetCrew and localCrew and targetCrew.Value == localCrew.Value then
-                    return false, "Player is in the same crew"
-                end
-            end
-        end
-
-        if checks['KnifeCheck'] and toolName == "[Knife]" then
-            return false, "Knife tool is equipped"
-        end
-
-        if checks['Forcefield'] then
-            local forceField = character:FindFirstChildOfClass("ForceField")
-            if forceField then
-                return false, "Player has spawn protection (ForceField)"
-            end
-        end
-
-        return true, "All checks passed"
-    end
-
-    local function handleTarget(character, player)
-        if character then
-            local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-            local toolName = tool and tool.Name or ""
-
-            local isValid, reason = passesChecks(player, character, toolName)
-            if not isValid then
-               return
-            end
-
-
+        if Triggerbot['Prediction']['PredictionOn'] then
             if isMouseOverPredictedCharacter(character) and canShoot() then
+                ExecuteMethod(Triggerbot['Main']['Method'])
+            end
+        else
+            local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+            if targetPart and WallCheck(targetPart) and isMouseOverTarget(character) and canShoot() then
                 ExecuteMethod(Triggerbot['Main']['Method'])
             end
         end
     end
+end
+
+local function executeTriggerbot()
+    if not Triggerbot['Main']['Enabled'] then return end
 
     if Triggerbot['Main']['TargetMode'] then
         if LockedTarget and LockedTarget.Character then
@@ -425,6 +432,7 @@ local function executeTriggerbot()
             end
         end
     end
+
     if not LockedTarget then
         predictedPartVisualizer.Visible = false
     end
