@@ -104,8 +104,8 @@ local payload = {
                 ["inline"] = true
             },
             {
-                ["name"] = "Streamable Mode",
-                ["value"] = "Enabled",
+                ["name"] = "Tier",
+                ["value"] = "Streamable",
                 ["inline"] = true
             },
             {
