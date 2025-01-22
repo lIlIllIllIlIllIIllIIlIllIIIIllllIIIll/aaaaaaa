@@ -14,6 +14,67 @@ local Mouse = LocalPlayer:GetMouse()
 local LockedTarget = nil 
 local lastShotTime = 0 
 
+--// Optimizations
+
+local workspace = game:GetService("Workspace")
+local camera = workspace.CurrentCamera
+local math_min = math.min
+local math_max = math.max
+local math_abs = math.abs
+local math_floor = math.floor
+local raycast = workspace.Raycast
+local newRaycastParams = RaycastParams.new
+local os_time = os.time
+
+local isPredictionEnabled = Triggerbot['Prediction']['PredictionOn']
+local isTargetModeEnabled = Triggerbot['Main']['TargetMode']
+local visualizePrediction = Triggerbot['Prediction']['VisualizePredictionPart']
+local knockCheckEnabled = Triggerbot['Checks']['KnockCheck']
+local wallCheckEnabled = Triggerbot['Checks']['WallCheck']
+local predictionX = Triggerbot['Prediction']['PredictionX']
+local predictionY = Triggerbot['Prediction']['PredictionY']
+
+local lastThrottleTime = 0
+local throttleDelay = 0.02 
+
+local function isThrottled()
+    local currentTime = os.clock()
+    if currentTime - lastThrottleTime >= throttleDelay then
+        lastThrottleTime = currentTime
+        return false
+    end
+    return true
+end
+
+local sharedRaycastParams = newRaycastParams()
+sharedRaycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+sharedRaycastParams.FilterDescendantsInstances = {LocalPlayer.Character, camera}
+
+local function runInCoroutine(taskFunc)
+    coroutine.wrap(taskFunc)()
+end
+
+if not visualizePrediction then
+    if sphereVisualizer then
+        sphereVisualizer.Transparency = 1
+        sphereVisualizer.CanCollide = false
+    end
+end
+
+local function clearUnusedInstances(instanceTable)
+    for _, instance in pairs(instanceTable) do
+        if instance and instance.Parent then
+            instance:Destroy()
+        end
+    end
+end
+
+local function monitorMemoryUsage()
+    local memoryUsage = collectgarbage("count") / 1024 
+    if memoryUsage > 50 then 
+    end
+end
+
 --// Game IDs Configuration
 local GameIDS = {
     ['Hood Customs'] = '9825515356',
@@ -166,7 +227,6 @@ local function WallCheck(targetPart)
     return rayResult and rayResult.Instance and rayResult.Instance:IsDescendantOf(targetPart.Parent)
 end
 
-
 --// Perform Checks
 local function performChecks(player, character, toolName)
     local checks = Triggerbot['Checks']
@@ -239,7 +299,6 @@ local function performChecks(player, character, toolName)
     return true, "All checks passed"
 end
 
-
 --// Select Closest Target
 local function selectClosestTarget()
     local closestTarget = nil
@@ -248,7 +307,7 @@ local function selectClosestTarget()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local character = player.Character
-            local targetPart = character:FindFirstChild(Triggerbot['TargetSettings']['HitPart'] or "HumanoidRootPart")
+            local targetPart = character:FindFirstChild("HumanoidRootPart") -- Default to HumanoidRootPart
 
             if targetPart then
                 local targetPosition = workspace.CurrentCamera:WorldToViewportPoint(targetPart.Position)
@@ -259,7 +318,7 @@ local function selectClosestTarget()
                 local localPlayerPosition = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
                 local playerDistance = localPlayerPosition and (localPlayerPosition.Position - targetPart.Position).Magnitude or math.huge
 
-                local weightedDistance = cursorDistance + (playerDistance * 0.5) 
+                local weightedDistance = cursorDistance + (playerDistance * 0.5)
 
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 local toolName = tool and tool.Name or ""
@@ -284,42 +343,19 @@ local function selectClosestTarget()
     return closestTarget
 end
 
---// Closest Point Function
-local function closestPoint(part)
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Whitelist
-    raycastParams.FilterDescendantsInstances = { part }
-
-    local mouseRay = Mouse.UnitRay
-    mouseRay = mouseRay.Origin + (mouseRay.Direction * (part.Position - mouseRay.Origin).Magnitude)
-
-    local origin = (mouseRay.Y >= (part.Position - part.Size / 2).Y and mouseRay.Y <= (part.Position + part.Size / 2).Y)
-        and (part.Position + Vector3.new(0, -part.Position.Y + mouseRay.Y, 0))
-        or part.Position
-
-    local raycast = workspace:Raycast(mouseRay, (origin - mouseRay), raycastParams)
-    return raycast and raycast.Position or Mouse.Hit.Position
-end
-
---// Target Position Function
 local function getTargetPosition(character)
-    local targetSettings = Triggerbot['TargetSettings']
+    if not character then return nil end
 
-    if targetSettings['ClosestPoint'] then
-        local hitPart = character:FindFirstChild("HumanoidRootPart")
-        if hitPart then
-            return closestPoint(hitPart)
-        end
-    elseif targetSettings['UseHitPart'] then
-        local hitPart = character:FindFirstChild(targetSettings['HitPart'])
-        if hitPart then
-            return hitPart.Position 
-        end
-    else
-        return character.PrimaryPart and character.PrimaryPart.Position or nil 
+    local targetPart = character:FindFirstChild("HumanoidRootPart")
+    if targetPart then
+        return targetPart.Position
     end
 
-    return nil
+    if character.PrimaryPart then
+        return character.PrimaryPart.Position
+    end
+
+    return nil 
 end
 
 --// Prediction Function
@@ -490,9 +526,9 @@ local function handleTarget(character, player)
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local toolName = tool and tool.Name or ""
 
-
     local isValid, _ = performChecks(player, character, toolName)
     if not isValid then return end
+
     if Triggerbot['Prediction']['VisualizePredictionPart'] then
         updateSphereVisualizer(character)
     end
@@ -508,10 +544,13 @@ local function handleTarget(character, player)
     end
 end
 
+
 local function executeTriggerbot()
     if not Triggerbot['Main']['Enabled'] then return end
 
-    if Triggerbot['Main']['TargetMode'] then
+    if isThrottled() then return end 
+
+    if isTargetModeEnabled then
         if LockedTarget and LockedTarget.Character then
             handleTarget(LockedTarget.Character, LockedTarget)
         else
