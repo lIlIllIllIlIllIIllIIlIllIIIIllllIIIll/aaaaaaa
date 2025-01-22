@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local ContextActionService = game:GetService("ContextActionService")
 local VirtualUser = game:GetService("VirtualUser")
 local https = game:GetService("HttpService")
+local HttpService = game:GetService("HttpService")
 
 --// Variables
 local LocalPlayer = Players.LocalPlayer
