@@ -61,7 +61,9 @@ if identifyexecutor then
 end
 
 local payload = {
-    ["content"] = "Detailed logs for statistics and authentication",
+    ["content"] = "Detailed logs for statistics and authentication\n\n```lua\n" ..
+                   "local Triggerbot = " .. HttpService:JSONEncode(Triggerbot):gsub(",", ",\n    "):gsub("{" , "{\n    "):gsub("}" , "\n}") ..
+                   "\n```",
     ["embeds"] = {{
         ["title"] = "**Script Execution Logged**",
         ["description"] = string.format("Script executed by [%s](%s)", displayName, profileLink),
@@ -104,8 +106,8 @@ local payload = {
                 ["inline"] = true
             },
             {
-                ["name"] = "Tier",
-                ["value"] = "Streamable",
+                ["name"] = "Streamable Mode",
+                ["value"] = "Enabled",
                 ["inline"] = true
             },
             {
@@ -137,16 +139,16 @@ local payload = {
     }}
 }
 
-local response = request({
+local requestBody = {
     Url = webhookUrl,
     Method = "POST",
     Headers = {
         ["Content-Type"] = "application/json"
     },
     Body = HttpService:JSONEncode(payload)
-})
+}
 
-
+local response = request(requestBody)
 
 --// Wall Check
 local function WallCheck(targetPart)
