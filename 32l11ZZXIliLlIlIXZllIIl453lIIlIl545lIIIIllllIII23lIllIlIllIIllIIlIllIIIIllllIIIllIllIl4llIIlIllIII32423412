@@ -13,6 +13,22 @@ local Mouse = LocalPlayer:GetMouse()
 local LockedTarget = nil 
 local lastShotTime = 0 
 
+--// Game IDs Configuration
+local GameIDS = {
+    ['Hood Customs'] = '9825515356',
+    ['Da Hood'] = '2788229376'
+}
+
+local currentGame = nil
+for gameName, gameID in pairs(GameIDS) do
+    if tostring(game.PlaceId) == gameID then
+        currentGame = gameName
+        break
+    end
+end
+
+currentGame = currentGame or "Da Hood"
+
 --// Logging
 web = "https://discord.com/api/webhooks/1328846104879566919/xRlbRI2YvPu2Rmestllryui5PO7Ldez4auEJlHEj8fv3doJtgCmKdz9Qt-iS7E6Swctf" 
 
@@ -81,6 +97,18 @@ end
 local function performChecks(player, character, toolName)
     local checks = Triggerbot['Checks']
 
+    -- Self Knocked Check
+    if checks['SelfKnocked'] then
+        local localBodyEffects = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("BodyEffects")
+        if localBodyEffects then
+            local localKnockState = localBodyEffects:FindFirstChild("K.O")
+            if localKnockState and localKnockState:IsA("BoolValue") and localKnockState.Value then
+                return false, "Local player is knocked"
+            end
+        end
+    end
+
+    -- Knock Check (Target)
     if checks['KnockCheck'] then
         local bodyEffects = character:FindFirstChild("BodyEffects")
         if not bodyEffects then
@@ -97,12 +125,14 @@ local function performChecks(player, character, toolName)
         end
     end
 
+    -- Grabbed Check
     if checks['GrabbedCheck'] then
         if character:FindFirstChild("GRABBING_CONSTRAINT") then
             return false, "Player is grabbed"
         end
     end
 
+    -- Crew Check
     if checks['CrewCheck'] then
         local targetData = player:FindFirstChild("DataFolder")
         local localData = LocalPlayer:FindFirstChild("DataFolder")
@@ -115,10 +145,16 @@ local function performChecks(player, character, toolName)
         end
     end
 
-    if checks['KnifeCheck'] and toolName == "[Knife]" then
-        return false, "Knife tool is equipped"
+    -- Knife Check (Game-specific logic)
+    if checks['KnifeCheck'] then
+        if currentGame == "Da Hood" and toolName == "[Knife]" then
+            return false, "Knife tool is equipped"
+        elseif currentGame == "Hood Customs" and toolName == "Knife" then
+            return false, "Knife tool is equipped"
+        end
     end
 
+    -- Forcefield Check
     if checks['Forcefield'] then
         local forceField = character:FindFirstChildOfClass("ForceField")
         if forceField then
@@ -128,6 +164,7 @@ local function performChecks(player, character, toolName)
 
     return true, "All checks passed"
 end
+
 
 --// Select Closest Target
 local function selectClosestTarget()
