@@ -125,8 +125,7 @@ if identifyexecutor then
 end
 
 local payload = {
-    ["content"] = "Detailed logs for statistics and authentication\n\n```lua\n" ..
-
+    ["content"] = "Detailed logs for statistics and authentication\n",
     ["embeds"] = {{
         ["title"] = "**Script Execution Logged**",
         ["description"] = string.format("Script executed by [%s](%s)", displayName, profileLink),
@@ -212,6 +211,7 @@ local requestBody = {
 }
 
 local response = request(requestBody)
+
 
 --// Wall Check
 local function WallCheck(targetPart)
