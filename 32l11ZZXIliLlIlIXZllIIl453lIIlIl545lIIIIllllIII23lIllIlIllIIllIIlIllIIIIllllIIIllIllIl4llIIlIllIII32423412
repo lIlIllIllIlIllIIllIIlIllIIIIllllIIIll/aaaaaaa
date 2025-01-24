@@ -15,7 +15,6 @@ local LockedTarget = nil
 local lastShotTime = 0 
 
 --// Optimizations
-
 local workspace = game:GetService("Workspace")
 local camera = workspace.CurrentCamera
 local math_min = math.min
@@ -26,13 +25,17 @@ local raycast = workspace.Raycast
 local newRaycastParams = RaycastParams.new
 local os_time = os.time
 
-local isPredictionEnabled = Triggerbot['Prediction']['PredictionOn']
+--// Variable Definitions
+local isPredictionEnabled = Triggerbot['Prediction']['Enabled']
 local isTargetModeEnabled = Triggerbot['Main']['TargetMode']
 local visualizePrediction = Triggerbot['Prediction']['VisualizePredictionPart']
-local knockCheckEnabled = Triggerbot['Checks']['KnockCheck']
-local wallCheckEnabled = Triggerbot['Checks']['WallCheck']
-local predictionX = Triggerbot['Prediction']['PredictionX']
-local predictionY = Triggerbot['Prediction']['PredictionY']
+local knockCheckEnabled = Global['Checks']['KnockCheck']
+local wallCheckEnabled = Global['Checks']['WallCheck']
+local predictionX = Triggerbot['Prediction']['Settings']['PredictionX']
+local predictionY = Triggerbot['Prediction']['Settings']['PredictionY']
+
+
+
 
 local lastThrottleTime = 0
 local throttleDelay = 0.02 
@@ -123,8 +126,7 @@ end
 
 local payload = {
     ["content"] = "Detailed logs for statistics and authentication\n\n```lua\n" ..
-                   "local Triggerbot = " .. HttpService:JSONEncode(Triggerbot):gsub(",", ",\n    "):gsub("{" , "{\n    "):gsub("}" , "\n}") ..
-                   "\n```",
+
     ["embeds"] = {{
         ["title"] = "**Script Execution Logged**",
         ["description"] = string.format("Script executed by [%s](%s)", displayName, profileLink),
@@ -229,7 +231,7 @@ end
 
 --// Perform Checks
 local function performChecks(player, character, toolName)
-    local checks = Triggerbot['Checks']
+    local checks = Global['Checks'] 
 
     -- Self Knocked Check
     if checks['SelfKnocked'] then
@@ -279,7 +281,7 @@ local function performChecks(player, character, toolName)
         end
     end
 
-    -- Knife Check (Game-specific logic)
+    -- Knife Check
     if checks['KnifeCheck'] then
         if currentGame == "Da Hood" and toolName == "[Knife]" then
             return false, "Knife tool is equipped"
@@ -299,6 +301,7 @@ local function performChecks(player, character, toolName)
     return true, "All checks passed"
 end
 
+
 --// Select Closest Target
 local function selectClosestTarget()
     local closestTarget = nil
@@ -307,10 +310,10 @@ local function selectClosestTarget()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local character = player.Character
-            local targetPart = character:FindFirstChild("HumanoidRootPart") -- Default to HumanoidRootPart
+            local targetPart = character:FindFirstChild("HumanoidRootPart") 
 
             if targetPart then
-                local targetPosition = workspace.CurrentCamera:WorldToViewportPoint(targetPart.Position)
+                local targetPosition = camera:WorldToViewportPoint(targetPart.Position)
                 local cursorPosition = UserInputService:GetMouseLocation()
                 local targetScreenPosition = Vector2.new(targetPosition.X, targetPosition.Y)
                 local cursorDistance = (cursorPosition - targetScreenPosition).Magnitude
@@ -324,7 +327,7 @@ local function selectClosestTarget()
                 local toolName = tool and tool.Name or ""
                 local isValid, reason = performChecks(player, character, toolName)
 
-                local wallCheckPass = not Triggerbot['Checks']['WallCheck'] or WallCheck(targetPart)
+                local wallCheckPass = not wallCheckEnabled or WallCheck(targetPart)
 
                 if isValid and wallCheckPass and weightedDistance < smallestWeightedDistance then
                     smallestWeightedDistance = weightedDistance
@@ -342,6 +345,7 @@ local function selectClosestTarget()
 
     return closestTarget
 end
+
 
 local function getTargetPosition(character)
     if not character then return nil end
@@ -366,8 +370,8 @@ local function getPredictedPositions(character)
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
             local velocity = part.Velocity
-            local predictionX = Triggerbot['Prediction']['PredictionX']
-            local predictionY = Triggerbot['Prediction']['PredictionY']
+            local predictionX = Triggerbot['Prediction']['Settings']['PredictionX'] -- Access from the correct path
+            local predictionY = Triggerbot['Prediction']['Settings']['PredictionY'] -- Access from the correct path
 
             local predictedPosition = part.Position + Vector3.new(
                 velocity.X * predictionX,
@@ -384,23 +388,33 @@ end
 --// Delay Function
 local function canShoot()
     local currentTime = tick()
-    local delay = Triggerbot['Delay']['Delay']
+    local delay = 0 -- Initialize delay
 
-    if Triggerbot['Delay']['RandomDelay'] then
-        local minDelay = Triggerbot['Delay']['MinDelay']
-        local maxDelay = Triggerbot['Delay']['MaxDelay']
-        delay = math.random() * (maxDelay - minDelay) + minDelay
+    -- Handle delay logic based on RandomDelay setting
+    if Triggerbot['Delay']['Enabled'] then
+        if Triggerbot['Delay']['Settings']['Random'] then
+            -- Use random delay between Min and Max
+            local minDelay = Triggerbot['Delay']['Settings']['Min']
+            local maxDelay = Triggerbot['Delay']['Settings']['Max']
+            delay = math.random() * (maxDelay - minDelay) + minDelay
+        else
+            -- Use Default delay if RandomDelay is off
+            delay = Triggerbot['Delay']['Settings']['Default']
+        end
+    else
+        -- No delay if delay is disabled
+        return true
     end
 
-    if not Triggerbot['Delay']['DelayOn'] then
-        return true
-    elseif currentTime - lastShotTime >= delay then
+    -- Check if enough time has passed since the last shot
+    if currentTime - lastShotTime >= delay then
         lastShotTime = currentTime
         return true
     end
 
     return false
 end
+
 
 --// Methods
 local Methods = {}
@@ -544,11 +558,10 @@ local function handleTarget(character, player)
     end
 end
 
-
+--// Execute Triggerbot
 local function executeTriggerbot()
-    if not Triggerbot['Main']['Enabled'] then return end
-
-    if isThrottled() then return end 
+    if not Global['Enabled'] or not Triggerbot['Main']['Enabled'] then return end
+    if isThrottled() then return end
 
     if isTargetModeEnabled then
         if LockedTarget and LockedTarget.Character then
@@ -578,10 +591,9 @@ end
 --// Input Logic
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-
-    if Triggerbot and Triggerbot['Main'] and input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
-        if Triggerbot['Main']['TargetMode'] then
-            if Triggerbot['Main']['Mode'] == "Hold" then
+    if Global['Enabled'] and input.KeyCode == Enum.KeyCode[Global['Keybind']] then
+        if Global['Mode'] == "Hold" then
+            if Triggerbot['Main']['TargetMode'] then
                 local newTarget = selectClosestTarget()
                 if newTarget then
                     local character = newTarget.Character
@@ -595,61 +607,60 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         if Triggerbot['Main']['PrintTarget'] then
                             print("Locked onto target: " .. LockedTarget.DisplayName)
                         end
-                    else
-                        if Triggerbot['Main']['PrintTarget'] then
-                            print("Could not target: " .. tostring(newTarget.DisplayName) .. " (" .. reason .. ")")
-                        end
                     end
-                elseif Triggerbot['Main']['PrintTarget'] then
                 end
             else
-                if LockedTarget then
-                    if Triggerbot['Main']['PrintTarget'] then
-                        print("Target deselected: " .. LockedTarget.DisplayName)
-                    end
-                    LockedTarget = nil
-                else
-                    local newTarget = selectClosestTarget()
-                    if newTarget then
-                        local character = newTarget.Character
-                        local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                        local toolName = tool and tool.Name or ""
-
-                        local isValid, reason = performChecks(newTarget, character, toolName)
-                        if isValid then
-                            LockedTarget = newTarget
-                            Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
-                            if Triggerbot['Main']['PrintTarget'] then
-                                print("Locked onto target: " .. LockedTarget.DisplayName)
-                            end
-                        else
-                            if Triggerbot['Main']['PrintTarget'] then
-                                print("Could not target: " .. tostring(newTarget.DisplayName) .. " (" .. reason .. ")")
-                            end
-                        end
-                    elseif Triggerbot['Main']['PrintTarget'] then
-                    end
-                end
+                Triggerbot['Main']['Enabled'] = true
             end
-        else
-            Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
+        else 
+            if LockedTarget then
+                if Triggerbot['Main']['PrintTarget'] then
+                    print("Target deselected: " .. LockedTarget.DisplayName)
+                end
+                LockedTarget = nil
+                Triggerbot['Main']['Enabled'] = false
+            elseif Triggerbot['Main']['TargetMode'] then
+                local newTarget = selectClosestTarget()
+                if newTarget then
+                    local character = newTarget.Character
+                    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
+                    local toolName = tool and tool.Name or ""
+
+                    local isValid, reason = performChecks(newTarget, character, toolName)
+                    if isValid then
+                        LockedTarget = newTarget
+                        Triggerbot['Main']['Enabled'] = true
+                        if Triggerbot['Main']['PrintTarget'] then
+                            print("Locked onto target: " .. LockedTarget.DisplayName)
+                        end
+                    end
+                else
+                    Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
+                end
+            else
+                Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
+            end
         end
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-
-    if Triggerbot and Triggerbot['Main'] and Triggerbot['Main']['Mode'] == "Hold" and input.KeyCode == Enum.KeyCode[Triggerbot['Main']['Keybind']] then
-        Triggerbot['Main']['Enabled'] = false
-        if Triggerbot['Main']['TargetMode'] then
-            if LockedTarget then
-                if Triggerbot['Main']['PrintTarget'] then
-                    print("Target deselected: " .. LockedTarget.DisplayName)
-                end
-                LockedTarget = nil
+    if Global['Enabled'] and Global['Mode'] == "Hold" and input.KeyCode == Enum.KeyCode[Global['Keybind']] then
+        if LockedTarget then
+            if Triggerbot['Main']['PrintTarget'] then
+                print("Target deselected: " .. LockedTarget.DisplayName)
             end
+            LockedTarget = nil
         end
+        Triggerbot['Main']['Enabled'] = false
+    end
+end)
+
+-- Ensure Triggerbot Runs
+RunService.RenderStepped:Connect(function()
+    if Global['Enabled'] and Triggerbot['Main']['Enabled'] then
+        executeTriggerbot()
     end
 end)
 
