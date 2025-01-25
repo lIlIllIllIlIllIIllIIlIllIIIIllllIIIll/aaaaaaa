@@ -1,20 +1,22 @@
 --// Services
+
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ContextActionService = game:GetService("ContextActionService")
 local VirtualUser = game:GetService("VirtualUser")
-local https = game:GetService("HttpService")
 local HttpService = game:GetService("HttpService")
 
 --// Variables
+
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
-local LockedTarget = nil 
-local lastShotTime = 0 
+local LockedTarget = nil
+local lastShotTime = 0
 
 --// Optimizations
+
 local workspace = game:GetService("Workspace")
 local camera = workspace.CurrentCamera
 local math_min = math.min
@@ -23,19 +25,6 @@ local math_abs = math.abs
 local math_floor = math.floor
 local raycast = workspace.Raycast
 local newRaycastParams = RaycastParams.new
-local os_time = os.time
-
---// Variable Definitions
-local isPredictionEnabled = Triggerbot['Prediction']['Enabled']
-local isTargetModeEnabled = Triggerbot['Main']['TargetMode']
-local visualizePrediction = Triggerbot['Prediction']['VisualizePredictionPart']
-local knockCheckEnabled = Global['Checks']['KnockCheck']
-local wallCheckEnabled = Global['Checks']['WallCheck']
-local predictionX = Triggerbot['Prediction']['Settings']['PredictionX']
-local predictionY = Triggerbot['Prediction']['Settings']['PredictionY']
-
-
-
 
 local lastThrottleTime = 0
 local throttleDelay = 0.02 
@@ -79,6 +68,7 @@ local function monitorMemoryUsage()
 end
 
 --// Game IDs Configuration
+
 local GameIDS = {
     ['Hood Customs'] = '9825515356',
     ['Da Hood'] = '2788229376'
@@ -231,10 +221,21 @@ end
 
 --// Perform Checks
 local function performChecks(player, character, toolName)
-    local checks = Global['Checks'] 
+    local globalChecks = Settings['Global']['Checks']['WhileTargeting']
+    local blacklistSettings = Settings['Global']['BlacklistPlayers']
+
+    -- Blacklist Check
+    if blacklistSettings['Enabled'] then
+        local blacklistedUsers = blacklistSettings['Players']
+        for _, username in pairs(blacklistedUsers) do
+            if player.Name == username then
+                return false, "Player is blacklisted"
+            end
+        end
+    end
 
     -- Self Knocked Check
-    if checks['SelfKnocked'] then
+    if globalChecks['SelfKnocked'] then
         local localBodyEffects = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("BodyEffects")
         if localBodyEffects then
             local localKnockState = localBodyEffects:FindFirstChild("K.O")
@@ -244,8 +245,8 @@ local function performChecks(player, character, toolName)
         end
     end
 
-    -- Knock Check (Target)
-    if checks['KnockCheck'] then
+    -- Knock Check 
+    if globalChecks['Knocked'] then
         local bodyEffects = character:FindFirstChild("BodyEffects")
         if not bodyEffects then
             return false, "BodyEffects folder missing"
@@ -262,14 +263,14 @@ local function performChecks(player, character, toolName)
     end
 
     -- Grabbed Check
-    if checks['GrabbedCheck'] then
+    if globalChecks['Grabbed'] then
         if character:FindFirstChild("GRABBING_CONSTRAINT") then
             return false, "Player is grabbed"
         end
     end
 
     -- Crew Check
-    if checks['CrewCheck'] then
+    if globalChecks['CrewCheck'] then
         local targetData = player:FindFirstChild("DataFolder")
         local localData = LocalPlayer:FindFirstChild("DataFolder")
         if targetData and localData then
@@ -282,7 +283,7 @@ local function performChecks(player, character, toolName)
     end
 
     -- Knife Check
-    if checks['KnifeCheck'] then
+    if globalChecks['KnifeCheck'] then
         if currentGame == "Da Hood" and toolName == "[Knife]" then
             return false, "Knife tool is equipped"
         elseif currentGame == "Hood Customs" and toolName == "Knife" then
@@ -291,7 +292,7 @@ local function performChecks(player, character, toolName)
     end
 
     -- Forcefield Check
-    if checks['Forcefield'] then
+    if globalChecks['Forcefield'] then
         local forceField = character:FindFirstChildOfClass("ForceField")
         if forceField then
             return false, "Player has spawn protection (ForceField)"
@@ -301,7 +302,6 @@ local function performChecks(player, character, toolName)
     return true, "All checks passed"
 end
 
-
 --// Select Closest Target
 local function selectClosestTarget()
     local closestTarget = nil
@@ -310,7 +310,7 @@ local function selectClosestTarget()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local character = player.Character
-            local targetPart = character:FindFirstChild("HumanoidRootPart") 
+            local targetPart = character:FindFirstChild("HumanoidRootPart")
 
             if targetPart then
                 local targetPosition = camera:WorldToViewportPoint(targetPart.Position)
@@ -325,11 +325,9 @@ local function selectClosestTarget()
 
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 local toolName = tool and tool.Name or ""
-                local isValid, reason = performChecks(player, character, toolName)
+                local isValid, _ = performChecks(player, character, toolName)
 
-                local wallCheckPass = not wallCheckEnabled or WallCheck(targetPart)
-
-                if isValid and wallCheckPass and weightedDistance < smallestWeightedDistance then
+                if isValid and weightedDistance < smallestWeightedDistance then
                     smallestWeightedDistance = weightedDistance
                     closestTarget = player
                 end
@@ -337,15 +335,8 @@ local function selectClosestTarget()
         end
     end
 
-    LockedTarget = closestTarget
-
-    if not LockedTarget and Triggerbot['Main']['PrintTarget'] then
-        print("No valid target found")
-    end
-
     return closestTarget
 end
-
 
 local function getTargetPosition(character)
     if not character then return nil end
@@ -369,10 +360,11 @@ local function getPredictedPositions(character)
     local predictedPositions = {}
     for _, part in ipairs(character:GetChildren()) do
         if part:IsA("BasePart") then
-            local velocity = part.Velocity
-            local predictionX = Triggerbot['Prediction']['Settings']['PredictionX'] -- Access from the correct path
-            local predictionY = Triggerbot['Prediction']['Settings']['PredictionY'] -- Access from the correct path
+            -- Corrected path to access Prediction settings
+            local predictionX = Settings['Triggerbot']['Prediction']['Settings']['PredictionX']
+            local predictionY = Settings['Triggerbot']['Prediction']['Settings']['PredictionY']
 
+            local velocity = part.Velocity
             local predictedPosition = part.Position + Vector3.new(
                 velocity.X * predictionX,
                 velocity.Y * predictionY,
@@ -388,25 +380,19 @@ end
 --// Delay Function
 local function canShoot()
     local currentTime = tick()
-    local delay = 0 -- Initialize delay
+    local delay = 0 
 
-    -- Handle delay logic based on RandomDelay setting
-    if Triggerbot['Delay']['Enabled'] then
-        if Triggerbot['Delay']['Settings']['Random'] then
-            -- Use random delay between Min and Max
-            local minDelay = Triggerbot['Delay']['Settings']['Min']
-            local maxDelay = Triggerbot['Delay']['Settings']['Max']
+    if Settings['Triggerbot']['Delay']['Enabled'] then
+        if Settings['Triggerbot']['Delay']['Settings']['Random'] then
+            local minDelay = Settings['Triggerbot']['Delay']['Settings']['Range']['Min']
+            local maxDelay = Settings['Triggerbot']['Delay']['Settings']['Range']['Max']
             delay = math.random() * (maxDelay - minDelay) + minDelay
         else
-            -- Use Default delay if RandomDelay is off
-            delay = Triggerbot['Delay']['Settings']['Default']
+            delay = Settings['Triggerbot']['Delay']['Settings']['Default']
         end
     else
-        -- No delay if delay is disabled
         return true
     end
-
-    -- Check if enough time has passed since the last shot
     if currentTime - lastShotTime >= delay then
         lastShotTime = currentTime
         return true
@@ -415,8 +401,8 @@ local function canShoot()
     return false
 end
 
-
 --// Methods
+
 local Methods = {}
 
 Methods['MouseClick'] = function()
@@ -452,6 +438,7 @@ local function ExecuteMethod(methodName)
 end
 
 --// Sphere Visualizer
+
 local sphereVisualizer = Instance.new("Part")
 sphereVisualizer.Shape = Enum.PartType.Ball
 sphereVisualizer.Size = Vector3.new(1, 1, 1) 
@@ -462,15 +449,17 @@ sphereVisualizer.Transparency = 0.9
 sphereVisualizer.Material = Enum.Material.Neon
 sphereVisualizer.Parent = workspace
 
+--// Sphere Visualizer Updates
+
 local function updateSphereVisualizer(character)
-    if not Triggerbot['Prediction']['VisualizePredictionPart'] then
+    if not Settings['Triggerbot']['Prediction']['VisualizePredictionPart'] then
         sphereVisualizer.Transparency = 1 
         return
     end
 
     local predictedPositions = getPredictedPositions(character)
     if #predictedPositions > 0 then
-        sphereVisualizer.Position = predictedPositions[1] 
+        sphereVisualizer.Position = predictedPositions[1]
         sphereVisualizer.Transparency = 0.5 
     else
         sphereVisualizer.Transparency = 1 
@@ -535,49 +524,51 @@ local function isMouseOverTarget(character)
     return mouseTarget and mouseTarget:IsDescendantOf(character)
 end
 
+--// Handle Target
+
 local function handleTarget(character, player)
     if not character then return end
+
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local toolName = tool and tool.Name or ""
 
     local isValid, _ = performChecks(player, character, toolName)
     if not isValid then return end
 
-    if Triggerbot['Prediction']['VisualizePredictionPart'] then
+    if Settings['Triggerbot']['Prediction']['VisualizePredictionPart'] then
         updateSphereVisualizer(character)
     end
 
-    if not Triggerbot['Prediction']['PredictionOn'] then
-        if isMouseOverTarget(character) and canShoot() then
-            ExecuteMethod(Triggerbot['Main']['Method'])
-        end
-    else
-        if isMouseOverPredictedCharacter(character) and canShoot() then
-            ExecuteMethod(Triggerbot['Main']['Method'])
-        end
+    local shootCondition = (Settings['Triggerbot']['Prediction']['Enabled'] and isMouseOverPredictedCharacter(character)) or isMouseOverTarget(character)
+    if shootCondition and canShoot() then
+        ExecuteMethod(Settings['Triggerbot']['Settings']['Method'])
     end
 end
 
 --// Execute Triggerbot
-local function executeTriggerbot()
-    if not Global['Enabled'] or not Triggerbot['Main']['Enabled'] then return end
-    if isThrottled() then return end
 
-    if isTargetModeEnabled then
-        if LockedTarget and LockedTarget.Character then
-            handleTarget(LockedTarget.Character, LockedTarget)
-        else
-            local newTarget = selectClosestTarget()
-            if newTarget then
-                LockedTarget = newTarget
-                if Triggerbot['Main']['PrintTarget'] then
-                    print("Locked onto target: " .. LockedTarget.DisplayName)
-                end
-            elseif Triggerbot['Main']['PrintTarget'] then
-                print("No valid target found")
+local function executeTriggerbot()
+    if not Settings['Triggerbot']['Settings']['Enabled'] then 
+        if LockedTarget then
+            if Settings['Triggerbot']['Settings']['PrintTarget'] then
+                print("Unselected target:", LockedTarget.DisplayName)
             end
+            LockedTarget = nil
         end
-    else
+        return 
+    end
+
+    if Settings['Global']['Mode'] == "Hold" and not UserInputService:IsKeyDown(Enum.KeyCode[Settings['Global']['Keybind']]) then
+        if LockedTarget then
+            if Settings['Triggerbot']['Settings']['PrintTarget'] then
+                print("Unselected target due to key release:", LockedTarget.DisplayName)
+            end
+            LockedTarget = nil
+        end
+        return
+    end
+
+    if not Settings['Triggerbot']['Settings']['TargetMode'] then
         local mouseTarget = Mouse.Target
         if mouseTarget then
             local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
@@ -585,60 +576,55 @@ local function executeTriggerbot()
                 handleTarget(targetPlayer.Character, targetPlayer)
             end
         end
+    elseif LockedTarget then
+        if LockedTarget.Character then
+            handleTarget(LockedTarget.Character, LockedTarget)
+        else
+            if Settings['Triggerbot']['Settings']['PrintTarget'] then
+                print("Unselected invalid target:", LockedTarget.DisplayName)
+            end
+            LockedTarget = selectClosestTarget()
+            if Settings['Triggerbot']['Settings']['PrintTarget'] and LockedTarget then
+                print("Locked onto new target:", LockedTarget.DisplayName)
+            end
+        end
     end
 end
 
 --// Input Logic
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if Global['Enabled'] and input.KeyCode == Enum.KeyCode[Global['Keybind']] then
-        if Global['Mode'] == "Hold" then
-            if Triggerbot['Main']['TargetMode'] then
-                local newTarget = selectClosestTarget()
-                if newTarget then
-                    local character = newTarget.Character
-                    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                    local toolName = tool and tool.Name or ""
-
-                    local isValid, reason = performChecks(newTarget, character, toolName)
-                    if isValid then
-                        LockedTarget = newTarget
-                        Triggerbot['Main']['Enabled'] = true
-                        if Triggerbot['Main']['PrintTarget'] then
-                            print("Locked onto target: " .. LockedTarget.DisplayName)
-                        end
+    if input.KeyCode == Enum.KeyCode[Settings['Global']['Keybind']] then
+        if Settings['Global']['Mode'] == "Hold" then
+            if Settings['Triggerbot']['Settings']['TargetMode'] then
+                local potentialTarget = selectClosestTarget()
+                if potentialTarget and WallCheck(potentialTarget.Character:FindFirstChild("HumanoidRootPart")) then
+                    LockedTarget = potentialTarget
+                    if Settings['Triggerbot']['Settings']['PrintTarget'] and LockedTarget then
+                        print("Locked onto target:", LockedTarget.DisplayName)
                     end
                 end
-            else
-                Triggerbot['Main']['Enabled'] = true
             end
-        else 
-            if LockedTarget then
-                if Triggerbot['Main']['PrintTarget'] then
-                    print("Target deselected: " .. LockedTarget.DisplayName)
+            Settings['Triggerbot']['Settings']['Enabled'] = true
+        elseif Settings['Global']['Mode'] == "Toggle" then
+            if Settings['Triggerbot']['Settings']['Enabled'] then
+                if LockedTarget and Settings['Triggerbot']['Settings']['PrintTarget'] then
+                    print("Unselected target:", LockedTarget.DisplayName)
                 end
                 LockedTarget = nil
-                Triggerbot['Main']['Enabled'] = false
-            elseif Triggerbot['Main']['TargetMode'] then
-                local newTarget = selectClosestTarget()
-                if newTarget then
-                    local character = newTarget.Character
-                    local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                    local toolName = tool and tool.Name or ""
-
-                    local isValid, reason = performChecks(newTarget, character, toolName)
-                    if isValid then
-                        LockedTarget = newTarget
-                        Triggerbot['Main']['Enabled'] = true
-                        if Triggerbot['Main']['PrintTarget'] then
-                            print("Locked onto target: " .. LockedTarget.DisplayName)
+                Settings['Triggerbot']['Settings']['Enabled'] = false
+            else
+                if Settings['Triggerbot']['Settings']['TargetMode'] then
+                    local potentialTarget = selectClosestTarget()
+                    if potentialTarget and WallCheck(potentialTarget.Character:FindFirstChild("HumanoidRootPart")) then
+                        LockedTarget = potentialTarget
+                        if Settings['Triggerbot']['Settings']['PrintTarget'] and LockedTarget then
+                            print("Locked onto target:", LockedTarget.DisplayName)
                         end
                     end
-                else
-                    Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
                 end
-            else
-                Triggerbot['Main']['Enabled'] = not Triggerbot['Main']['Enabled']
+                Settings['Triggerbot']['Settings']['Enabled'] = true
             end
         end
     end
@@ -646,23 +632,19 @@ end)
 
 UserInputService.InputEnded:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if Global['Enabled'] and Global['Mode'] == "Hold" and input.KeyCode == Enum.KeyCode[Global['Keybind']] then
-        if LockedTarget then
-            if Triggerbot['Main']['PrintTarget'] then
-                print("Target deselected: " .. LockedTarget.DisplayName)
-            end
-            LockedTarget = nil
+    if Settings['Global']['Mode'] == "Hold" and input.KeyCode == Enum.KeyCode[Settings['Global']['Keybind']] then
+        if LockedTarget and Settings['Triggerbot']['Settings']['PrintTarget'] then
+            print("Unselected target:", LockedTarget.DisplayName)
         end
-        Triggerbot['Main']['Enabled'] = false
+        LockedTarget = nil
+        Settings['Triggerbot']['Settings']['Enabled'] = false
     end
 end)
 
--- Ensure Triggerbot Runs
+--// Execute Triggerbot
+
 RunService.RenderStepped:Connect(function()
-    if Global['Enabled'] and Triggerbot['Main']['Enabled'] then
+if Settings['Triggerbot']['Settings']['Enabled'] then
         executeTriggerbot()
     end
 end)
-
---// Run Triggerbot
-RunService.RenderStepped:Connect(executeTriggerbot)
