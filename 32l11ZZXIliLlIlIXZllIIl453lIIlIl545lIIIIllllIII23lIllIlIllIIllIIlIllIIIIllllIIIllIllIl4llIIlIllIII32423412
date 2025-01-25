@@ -310,10 +310,10 @@ local function selectClosestTarget()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local character = player.Character
-            local targetPart = character:FindFirstChild("HumanoidRootPart")
+            local targetPart = character:FindFirstChild("HumanoidRootPart") -- Default to HumanoidRootPart
 
             if targetPart then
-                local targetPosition = camera:WorldToViewportPoint(targetPart.Position)
+                local targetPosition = workspace.CurrentCamera:WorldToViewportPoint(targetPart.Position)
                 local cursorPosition = UserInputService:GetMouseLocation()
                 local targetScreenPosition = Vector2.new(targetPosition.X, targetPosition.Y)
                 local cursorDistance = (cursorPosition - targetScreenPosition).Magnitude
@@ -325,14 +325,22 @@ local function selectClosestTarget()
 
                 local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
                 local toolName = tool and tool.Name or ""
-                local isValid, _ = performChecks(player, character, toolName)
+                local isValid, reason = performChecks(player, character, toolName)
 
-                if isValid and weightedDistance < smallestWeightedDistance then
+                local wallCheckPass = not Settings['Global']['Checks']['WallCheck'] or WallCheck(targetPart)
+
+                if isValid and wallCheckPass and weightedDistance < smallestWeightedDistance then
                     smallestWeightedDistance = weightedDistance
                     closestTarget = player
                 end
             end
         end
+    end
+
+    LockedTarget = closestTarget
+
+    if not LockedTarget and Settings['Triggerbot']['Settings']['PrintTarget'] then
+        print("No valid target found")
     end
 
     return closestTarget
