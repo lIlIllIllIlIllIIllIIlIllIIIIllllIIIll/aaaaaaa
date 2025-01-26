@@ -204,6 +204,7 @@ local response = request(requestBody)
 
 
 --// Wall Check
+
 local function WallCheck(targetPart)
     if not targetPart then return false end
 
@@ -220,6 +221,7 @@ local function WallCheck(targetPart)
 end
 
 --// Perform Checks
+
 local function performChecks(player, character, toolName)
     local globalChecks = Settings['Global']['Checks']['WhileTargeting']
     local blacklistSettings = Settings['Global']['BlacklistPlayers']
@@ -262,13 +264,6 @@ local function performChecks(player, character, toolName)
         end
     end
 
-    -- Grabbed Check
-    if globalChecks['Grabbed'] then
-        if character:FindFirstChild("GRABBING_CONSTRAINT") then
-            return false, "Player is grabbed"
-        end
-    end
-
     -- Crew Check
     if globalChecks['CrewCheck'] then
         local targetData = player:FindFirstChild("DataFolder")
@@ -302,7 +297,9 @@ local function performChecks(player, character, toolName)
     return true, "All checks passed"
 end
 
+
 --// Select Closest Target
+
 local function selectClosestTarget()
     local closestTarget = nil
     local smallestWeightedDistance = math.huge
@@ -494,6 +491,82 @@ local function getPredictedPosition(targetPart)
     )
 end
 
+-- AimAssist Logic
+
+local function calculateFOVDistance(targetPart)
+    local camera = workspace.CurrentCamera
+    local targetPosition, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+
+    if onScreen then
+        local cursorPosition = UserInputService:GetMouseLocation()
+        local fovDistance = (Vector2.new(targetPosition.X, targetPosition.Y) - cursorPosition).Magnitude
+        return fovDistance
+    end
+
+    return math.huge 
+end
+
+
+local function applyAimAssist()
+    if not Settings['Triggerbot']['AimAssist']['Enabled'] then return end
+
+    local aimAssistSettings = Settings['Triggerbot']['AimAssist']
+    local target = nil
+    local targetWithinFOV = false
+    if aimAssistSettings['SyncWithTB'] then
+        if LockedTarget and LockedTarget.Character then
+            local isValid, _ = performChecks(LockedTarget, LockedTarget.Character, "")
+            if isValid then
+                target = LockedTarget.Character:FindFirstChild("HumanoidRootPart")
+            end
+        end
+    else
+        local mouseTarget = Mouse.Target
+        if mouseTarget then
+            local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
+            if targetPlayer and targetPlayer.Character then
+                local isValid, _ = performChecks(targetPlayer, targetPlayer.Character, "")
+                if isValid then
+                    target = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+                end
+            end
+        end
+    end
+    if aimAssistSettings['FOV']['UseFOV'] and target then
+        local fovDistance = calculateFOVDistance(target)
+        if fovDistance <= aimAssistSettings['FOV']['FOVRadius'] then
+            targetWithinFOV = true
+        else
+            target = nil
+        end
+    else
+        targetWithinFOV = target ~= nil
+    end
+    if target and targetWithinFOV then
+        local player = Players:GetPlayerFromCharacter(target.Parent)
+        if player and player.Character then
+            local isValid, reason = performChecks(player, player.Character, "")
+            if not isValid then
+                target = nil 
+                targetWithinFOV = false
+            end
+        end
+    end
+    if target and targetWithinFOV then
+        local targetPosition = target.Position
+        local cameraCFrame = workspace.CurrentCamera.CFrame
+        local direction = (targetPosition - cameraCFrame.Position).Unit
+        local smoothFactor = aimAssistSettings['Smoothness']
+        local newLookVector = cameraCFrame.LookVector:Lerp(direction, smoothFactor)
+        workspace.CurrentCamera.CFrame = CFrame.new(cameraCFrame.Position, cameraCFrame.Position + newLookVector)
+        UserInputService.MouseDeltaSensitivity = aimAssistSettings['Strength']
+    else
+        UserInputService.MouseDeltaSensitivity = 1
+    end
+end
+
+
+-- // TB 
 local function isMouseOverPredictedCharacter(character)
     if not character then return false end
 
@@ -540,30 +613,36 @@ local function handleTarget(character, player)
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local toolName = tool and tool.Name or ""
 
+    -- Perform global checks
     local isValid, _ = performChecks(player, character, toolName)
     if not isValid then return end
 
+    -- Update visualizer if enabled
     if Settings['Triggerbot']['Prediction']['VisualizePredictionPart'] then
         updateSphereVisualizer(character)
     end
 
-    local shootCondition = (Settings['Triggerbot']['Prediction']['Enabled'] and isMouseOverPredictedCharacter(character)) or isMouseOverTarget(character)
+    -- Check if the triggerbot should shoot
+    local shootCondition = (Settings['Triggerbot']['Prediction']['Enabled'] and isMouseOverPredictedCharacter(character)) 
+        or isMouseOverTarget(character)
+
     if shootCondition and canShoot() then
         ExecuteMethod(Settings['Triggerbot']['Settings']['Method'])
     end
 end
 
+
 --// Execute Triggerbot
 
 local function executeTriggerbot()
-    if not Settings['Triggerbot']['Settings']['Enabled'] then 
+    if not Settings['Triggerbot']['Settings']['Enabled'] then
         if LockedTarget then
             if Settings['Triggerbot']['Settings']['PrintTarget'] then
                 print("Unselected target:", LockedTarget.DisplayName)
             end
             LockedTarget = nil
         end
-        return 
+        return
     end
 
     if Settings['Global']['Mode'] == "Hold" and not UserInputService:IsKeyDown(Enum.KeyCode[Settings['Global']['Keybind']]) then
@@ -576,7 +655,9 @@ local function executeTriggerbot()
         return
     end
 
-    if not Settings['Triggerbot']['Settings']['TargetMode'] then
+    if LockedTarget and LockedTarget.Character then
+        handleTarget(LockedTarget.Character, LockedTarget)
+    else
         local mouseTarget = Mouse.Target
         if mouseTarget then
             local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
@@ -584,20 +665,16 @@ local function executeTriggerbot()
                 handleTarget(targetPlayer.Character, targetPlayer)
             end
         end
-    elseif LockedTarget then
-        if LockedTarget.Character then
-            handleTarget(LockedTarget.Character, LockedTarget)
-        else
-            if Settings['Triggerbot']['Settings']['PrintTarget'] then
-                print("Unselected invalid target:", LockedTarget.DisplayName)
-            end
-            LockedTarget = selectClosestTarget()
-            if Settings['Triggerbot']['Settings']['PrintTarget'] and LockedTarget then
-                print("Locked onto new target:", LockedTarget.DisplayName)
-            end
-        end
     end
+
+    -- Call AimAssist
+    applyAimAssist()
 end
+
+
+
+
+
 
 --// Input Logic
 
@@ -646,8 +723,10 @@ UserInputService.InputEnded:Connect(function(input, gameProcessed)
         end
         LockedTarget = nil
         Settings['Triggerbot']['Settings']['Enabled'] = false
+        UserInputService.MouseDeltaSensitivity = 1 -- Reset sensitivity
     end
 end)
+
 
 --// Execute Triggerbot
 
