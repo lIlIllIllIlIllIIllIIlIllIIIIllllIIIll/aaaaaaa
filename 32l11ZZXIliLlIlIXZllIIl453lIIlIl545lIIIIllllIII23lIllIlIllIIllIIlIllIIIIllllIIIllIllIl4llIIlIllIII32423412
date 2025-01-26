@@ -719,7 +719,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                         LockedTarget = potentialTarget
                         print("Locked onto target:", LockedTarget.DisplayName)
                     else
-                        print("Tried to target onto player:", potentialTarget.DisplayName, "- Failed,", reason)
+                        print("Tried to target onto player:", potentialTarget.DisplayName")
                     end
                 else
                     print("No valid target found")
