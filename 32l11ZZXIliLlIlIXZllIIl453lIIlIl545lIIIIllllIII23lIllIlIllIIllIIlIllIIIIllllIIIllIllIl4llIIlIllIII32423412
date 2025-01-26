@@ -685,29 +685,39 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if Settings['Global']['Mode'] == "Hold" then
             if Settings['Triggerbot']['Settings']['TargetMode'] then
                 local potentialTarget = selectClosestTarget()
-                if potentialTarget and WallCheck(potentialTarget.Character:FindFirstChild("HumanoidRootPart")) then
-                    LockedTarget = potentialTarget
-                    if Settings['Triggerbot']['Settings']['PrintTarget'] and LockedTarget then
+                if potentialTarget then
+                    local isValid, reason = performChecks(potentialTarget, potentialTarget.Character, "")
+                    if isValid and WallCheck(potentialTarget.Character:FindFirstChild("HumanoidRootPart")) then
+                        LockedTarget = potentialTarget
                         print("Locked onto target:", LockedTarget.DisplayName)
+                    else
+                        print("Could not target:", reason)
                     end
+                else
+                    print("No valid target found")
                 end
             end
             Settings['Triggerbot']['Settings']['Enabled'] = true
         elseif Settings['Global']['Mode'] == "Toggle" then
             if Settings['Triggerbot']['Settings']['Enabled'] then
-                if LockedTarget and Settings['Triggerbot']['Settings']['PrintTarget'] then
-                    print("Unselected target:", LockedTarget.DisplayName)
+                if LockedTarget then
+                    print("Unselected target:")
                 end
                 LockedTarget = nil
                 Settings['Triggerbot']['Settings']['Enabled'] = false
             else
                 if Settings['Triggerbot']['Settings']['TargetMode'] then
                     local potentialTarget = selectClosestTarget()
-                    if potentialTarget and WallCheck(potentialTarget.Character:FindFirstChild("HumanoidRootPart")) then
-                        LockedTarget = potentialTarget
-                        if Settings['Triggerbot']['Settings']['PrintTarget'] and LockedTarget then
+                    if potentialTarget then
+                        local isValid, reason = performChecks(potentialTarget, potentialTarget.Character, "")
+                        if isValid and WallCheck(potentialTarget.Character:FindFirstChild("HumanoidRootPart")) then
+                            LockedTarget = potentialTarget
                             print("Locked onto target:", LockedTarget.DisplayName)
+                        else
+                            print("Could not target")
                         end
+                    else
+                        print("No valid target found")
                     end
                 end
                 Settings['Triggerbot']['Settings']['Enabled'] = true
@@ -719,15 +729,14 @@ end)
 UserInputService.InputEnded:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if Settings['Global']['Mode'] == "Hold" and input.KeyCode == Enum.KeyCode[Settings['Global']['Keybind']] then
-        if LockedTarget and Settings['Triggerbot']['Settings']['PrintTarget'] then
-            print("Unselected target:", LockedTarget.DisplayName)
+        if LockedTarget then 
+            print("Unselected target")
         end
         LockedTarget = nil
         Settings['Triggerbot']['Settings']['Enabled'] = false
-        UserInputService.MouseDeltaSensitivity = 1 -- Reset sensitivity
+        UserInputService.MouseDeltaSensitivity = 1 
     end
 end)
-
 
 --// Execute Triggerbot
 
