@@ -506,13 +506,14 @@ local function calculateFOVDistance(targetPart)
     return math.huge 
 end
 
-
 local function applyAimAssist()
     if not Settings['Triggerbot']['AimAssist']['Enabled'] then return end
 
     local aimAssistSettings = Settings['Triggerbot']['AimAssist']
     local target = nil
     local targetWithinFOV = false
+
+    -- Sync with Triggerbot or detect target under crosshair
     if aimAssistSettings['SyncWithTB'] then
         if LockedTarget and LockedTarget.Character then
             local isValid, _ = performChecks(LockedTarget, LockedTarget.Character, "")
@@ -532,6 +533,8 @@ local function applyAimAssist()
             end
         end
     end
+
+    -- FOV Check
     if aimAssistSettings['FOV']['UseFOV'] and target then
         local fovDistance = calculateFOVDistance(target)
         if fovDistance <= aimAssistSettings['FOV']['FOVRadius'] then
@@ -542,25 +545,43 @@ local function applyAimAssist()
     else
         targetWithinFOV = target ~= nil
     end
+
+    -- Perform global checks on the selected target
     if target and targetWithinFOV then
         local player = Players:GetPlayerFromCharacter(target.Parent)
         if player and player.Character then
-            local isValid, reason = performChecks(player, player.Character, "")
+            local isValid, _ = performChecks(player, player.Character, "")
             if not isValid then
-                target = nil 
+                target = nil
                 targetWithinFOV = false
             end
         end
     end
+
+    -- Apply aim assist (camera pull and sensitivity adjustment)
     if target and targetWithinFOV then
         local targetPosition = target.Position
-        local cameraCFrame = workspace.CurrentCamera.CFrame
+        local camera = workspace.CurrentCamera
+        local cameraCFrame = camera.CFrame
         local direction = (targetPosition - cameraCFrame.Position).Unit
-        local smoothFactor = aimAssistSettings['Smoothness']
-        local newLookVector = cameraCFrame.LookVector:Lerp(direction, smoothFactor)
-        workspace.CurrentCamera.CFrame = CFrame.new(cameraCFrame.Position, cameraCFrame.Position + newLookVector)
+
+        -- Detect first-person mode by checking camera-to-player distance
+        local isFirstPerson = (camera.CFrame.Position - LocalPlayer.Character.Head.Position).Magnitude < 1
+
+        if isFirstPerson then
+            -- For first-person, adjust the camera's CFrame directly
+            local newLookVector = cameraCFrame.LookVector:Lerp(direction, aimAssistSettings['Smoothness'])
+            camera.CFrame = CFrame.new(cameraCFrame.Position, cameraCFrame.Position + newLookVector)
+        else
+            -- For third-person, adjust the camera's focus normally
+            local newLookVector = cameraCFrame.LookVector:Lerp(direction, aimAssistSettings['Smoothness'])
+            camera.CFrame = CFrame.new(cameraCFrame.Position, cameraCFrame.Position + newLookVector)
+        end
+
+        -- Lower mouse sensitivity
         UserInputService.MouseDeltaSensitivity = aimAssistSettings['Strength']
     else
+        -- Reset sensitivity if no valid target
         UserInputService.MouseDeltaSensitivity = 1
     end
 end
@@ -612,11 +633,14 @@ local function handleTarget(character, player)
 
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local toolName = tool and tool.Name or ""
+
     local isValid, _ = performChecks(player, character, toolName)
     if not isValid then return end
+
     if Settings['Triggerbot']['Prediction']['VisualizePredictionPart'] then
         updateSphereVisualizer(character)
     end
+
     local shootCondition = (Settings['Triggerbot']['Prediction']['Enabled'] and isMouseOverPredictedCharacter(character)) 
         or isMouseOverTarget(character)
 
@@ -626,6 +650,7 @@ local function handleTarget(character, player)
 end
 
 --// Execute Triggerbot
+
 local function executeTriggerbot()
     if not Settings['Triggerbot']['Settings']['Enabled'] then
         LockedTarget = nil
@@ -649,10 +674,8 @@ local function executeTriggerbot()
         end
     end
 
-    -- Call AimAssist
     applyAimAssist()
 end
-
 
 --// Input Logic
 
@@ -701,7 +724,7 @@ UserInputService.InputEnded:Connect(function(input, gameProcessed)
         end
         LockedTarget = nil
         Settings['Triggerbot']['Settings']['Enabled'] = false
-        UserInputService.MouseDeltaSensitivity = 1 
+        UserInputService.MouseDeltaSensitivity = 1 -- Reset sensitivity
     end
 end)
 
