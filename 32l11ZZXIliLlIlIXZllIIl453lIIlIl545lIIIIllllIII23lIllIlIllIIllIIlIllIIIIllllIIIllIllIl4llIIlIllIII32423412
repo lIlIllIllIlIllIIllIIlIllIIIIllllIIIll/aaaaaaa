@@ -612,17 +612,11 @@ local function handleTarget(character, player)
 
     local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
     local toolName = tool and tool.Name or ""
-
-    -- Perform global checks
     local isValid, _ = performChecks(player, character, toolName)
     if not isValid then return end
-
-    -- Update visualizer if enabled
     if Settings['Triggerbot']['Prediction']['VisualizePredictionPart'] then
         updateSphereVisualizer(character)
     end
-
-    -- Check if the triggerbot should shoot
     local shootCondition = (Settings['Triggerbot']['Prediction']['Enabled'] and isMouseOverPredictedCharacter(character)) 
         or isMouseOverTarget(character)
 
@@ -634,22 +628,12 @@ end
 --// Execute Triggerbot
 local function executeTriggerbot()
     if not Settings['Triggerbot']['Settings']['Enabled'] then
-        if LockedTarget then
-            if Settings['Triggerbot']['Settings']['PrintTarget'] then
-                print("Unselected target:", LockedTarget.DisplayName)
-            end
-            LockedTarget = nil
-        end
+        LockedTarget = nil
         return
     end
 
     if Settings['Global']['Mode'] == "Hold" and not UserInputService:IsKeyDown(Enum.KeyCode[Settings['Global']['Keybind']]) then
-        if LockedTarget then
-            if Settings['Triggerbot']['Settings']['PrintTarget'] then
-                print("Unselected target due to key release:", LockedTarget.DisplayName)
-            end
-            LockedTarget = nil
-        end
+        LockedTarget = nil
         return
     end
 
@@ -660,10 +644,6 @@ local function executeTriggerbot()
         if mouseTarget then
             local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
             if targetPlayer and targetPlayer.Character then
-                -- Print the selected target
-                if Settings['Triggerbot']['Settings']['PrintTarget'] then
-                    print("Selected target:", targetPlayer.DisplayName)
-                end
                 handleTarget(targetPlayer.Character, targetPlayer)
             end
         end
@@ -672,6 +652,7 @@ local function executeTriggerbot()
     -- Call AimAssist
     applyAimAssist()
 end
+
 
 --// Input Logic
 
@@ -720,7 +701,7 @@ UserInputService.InputEnded:Connect(function(input, gameProcessed)
         end
         LockedTarget = nil
         Settings['Triggerbot']['Settings']['Enabled'] = false
-        UserInputService.MouseDeltaSensitivity = 1 -- Reset sensitivity
+        UserInputService.MouseDeltaSensitivity = 1 
     end
 end)
 
