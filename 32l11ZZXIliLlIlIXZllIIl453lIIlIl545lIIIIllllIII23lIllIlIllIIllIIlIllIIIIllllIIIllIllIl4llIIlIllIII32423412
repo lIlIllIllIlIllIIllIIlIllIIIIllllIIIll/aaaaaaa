@@ -631,9 +631,7 @@ local function handleTarget(character, player)
     end
 end
 
-
 --// Execute Triggerbot
-
 local function executeTriggerbot()
     if not Settings['Triggerbot']['Settings']['Enabled'] then
         if LockedTarget then
@@ -662,6 +660,10 @@ local function executeTriggerbot()
         if mouseTarget then
             local targetPlayer = Players:GetPlayerFromCharacter(mouseTarget.Parent)
             if targetPlayer and targetPlayer.Character then
+                -- Print the selected target
+                if Settings['Triggerbot']['Settings']['PrintTarget'] then
+                    print("Selected target:", targetPlayer.DisplayName)
+                end
                 handleTarget(targetPlayer.Character, targetPlayer)
             end
         end
@@ -670,11 +672,6 @@ local function executeTriggerbot()
     -- Call AimAssist
     applyAimAssist()
 end
-
-
-
-
-
 
 --// Input Logic
 
